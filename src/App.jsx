@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import Layout from './components/Layout'
 import StudentForm from './components/StudentForm'
+import CourseForm, { initialCourse } from './components/CourseForm'
+import CourseList from './components/CourseList'
 import './App.css'
 
 const initialStudent = {
@@ -14,10 +16,16 @@ const initialStudent = {
 function App() {
   const [student, setStudent] = useState(initialStudent)
   const [registeredStudent, setRegisteredStudent] = useState(null)
+  const [course, setCourse] = useState(initialCourse)
+  const [courses, setCourses] = useState([])
 
   const handleStudentSubmit = (studentData) => {
     setRegisteredStudent(studentData)
     setStudent(initialStudent)
+  }
+
+  const handleAddCourse = (courseData) => {
+    setCourses((prev) => [...prev, courseData])
   }
 
   return (
@@ -64,6 +72,30 @@ function App() {
         <section className="section empty-state">
           <p>No student registered yet. Fill the form above to get started.</p>
         </section>
+      )}
+
+      {registeredStudent && (
+        <>
+          <section className="section">
+            <h2>Course Registration</h2>
+            <p className="section-desc">
+              Add courses for {registeredStudent.name} (Roll: {registeredStudent.rollNumber}).
+            </p>
+            <CourseForm
+              course={course}
+              setCourse={setCourse}
+              onSubmit={handleAddCourse}
+            />
+          </section>
+
+          <section className="section">
+            <h2>Registered Courses</h2>
+            <p className="section-desc">
+              All courses currently registered for this student.
+            </p>
+            <CourseList courses={courses} />
+          </section>
+        </>
       )}
     </Layout>
   )

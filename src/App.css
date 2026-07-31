@@ -150,6 +150,49 @@
   margin: 0;
 }
 
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.course-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.925rem;
+}
+
+.course-table th,
+.course-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.course-table th {
+  background: #f8fafc;
+  font-weight: 600;
+  color: #334155;
+  font-size: 0.875rem;
+}
+
+.course-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.course-table td:first-child {
+  color: #64748b;
+  width: 3rem;
+}
+
+.course-count {
+  margin: 1rem 0 0;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.course-count strong {
+  color: #0f172a;
+}
+
 @media (max-width: 640px) {
   .app {
     padding: 1.25rem 1rem 2rem;
