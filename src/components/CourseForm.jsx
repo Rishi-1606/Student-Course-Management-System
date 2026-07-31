@@ -5,7 +5,7 @@ const initialCourse = {
   credits: '',
 }
 
-function CourseForm({ course, setCourse, onSubmit }) {
+function CourseForm({ course, setCourse, onCancel, onSubmit, isEditing, error }) {
   const handleChange = (e) => {
     const { name, value } = e.target
     setCourse((prev) => ({ ...prev, [name]: value }))
@@ -14,13 +14,11 @@ function CourseForm({ course, setCourse, onSubmit }) {
   const handleSubmit = (e) => {
     e.preventDefault()
     onSubmit({
-      id: crypto.randomUUID(),
       courseCode: course.courseCode.trim(),
       courseName: course.courseName.trim(),
       facultyName: course.facultyName.trim(),
       credits: course.credits,
     })
-    setCourse(initialCourse)
   }
 
   return (
@@ -81,9 +79,18 @@ function CourseForm({ course, setCourse, onSubmit }) {
         </div>
       </div>
 
-      <button type="submit" className="btn btn-primary">
-        Add Course
-      </button>
+      {error && <p className="form-error" role="alert">{error}</p>}
+
+      <div className="form-actions">
+        <button type="submit" className="btn btn-primary">
+          {isEditing ? 'Update Course' : 'Add Course'}
+        </button>
+        {isEditing && (
+          <button type="button" className="btn btn-secondary" onClick={onCancel}>
+            Cancel
+          </button>
+        )}
+      </div>
     </form>
   )
 }

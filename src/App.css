@@ -22,6 +22,31 @@
   font-size: 1rem;
 }
 
+.navigation {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+.navigation a {
+  padding: 0.45rem 0.75rem;
+  border-radius: 6px;
+  color: #475569;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.navigation a:hover {
+  background: #e2e8f0;
+}
+
+.navigation a.active {
+  background: #2563eb;
+  color: #fff;
+}
+
 .main {
   display: flex;
   flex-direction: column;
@@ -110,6 +135,28 @@
   transform: scale(0.98);
 }
 
+.btn-secondary {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.btn-secondary:hover {
+  background: #cbd5e1;
+}
+
+.form-actions,
+.course-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-error {
+  margin: -0.5rem 0 1rem;
+  color: #b91c1c;
+  font-size: 0.875rem;
+}
+
 .student-summary .summary-card {
   display: flex;
   flex-direction: column;
@@ -183,6 +230,60 @@
   width: 3rem;
 }
 
+.course-actions .btn {
+  padding: 0.4rem 0.65rem;
+  font-size: 0.8rem;
+}
+
+.btn-edit {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.btn-edit:hover {
+  background: #bfdbfe;
+}
+
+.btn-delete {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.btn-delete:hover {
+  background: #fecaca;
+}
+
+.search-field {
+  margin-bottom: 1rem;
+}
+
+.search-field label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #334155;
+}
+
+.search-field input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.925rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #1e293b;
+}
+
+.search-field input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.search-empty-state {
+  padding: 1rem;
+}
+
 .course-count {
   margin: 1rem 0 0;
   font-size: 0.875rem;
@@ -191,6 +292,11 @@
 
 .course-count strong {
   color: #0f172a;
+}
+
+.dashboard-status p {
+  margin: 0 0 1rem;
+  color: #475569;
 }
 
 @media (max-width: 640px) {
