@@ -22,6 +22,7 @@ function App() {
   const [courses, setCourses] = useState([])
   const [editingCourseId, setEditingCourseId] = useState(null)
   const [courseError, setCourseError] = useState('')
+  const [feedback, setFeedback] = useState(null)
   const [isDataLoaded, setIsDataLoaded] = useState(false)
 
   useEffect(() => {
@@ -42,6 +43,7 @@ function App() {
   const handleStudentSubmit = (studentData) => {
     setRegisteredStudent(studentData)
     setStudent(initialStudent)
+    setFeedback({ type: 'success', message: 'Student registered successfully.' })
   }
 
   const handleCourseSubmit = (courseData) => {
@@ -62,8 +64,10 @@ function App() {
           : existingCourse
       )))
       setEditingCourseId(null)
+      setFeedback({ type: 'success', message: 'Course updated successfully.' })
     } else {
       setCourses((prev) => [...prev, { ...courseData, id: crypto.randomUUID() }])
+      setFeedback({ type: 'success', message: 'Course added successfully.' })
     }
 
     setCourse(initialCourse)
@@ -93,6 +97,7 @@ function App() {
     }
 
     setCourses((prev) => prev.filter((course) => course.id !== courseId))
+    setFeedback({ type: 'success', message: 'Course deleted successfully.' })
 
     if (editingCourseId === courseId) {
       handleCancelCourseEdit()
@@ -101,6 +106,12 @@ function App() {
 
   return (
     <Layout>
+      {feedback && (
+        <div className={`feedback feedback-${feedback.type}`} role="status">
+          <span>{feedback.message}</span>
+          <button type="button" onClick={() => setFeedback(null)}>Dismiss</button>
+        </div>
+      )}
       <Routes>
         <Route path="/" element={<Dashboard registeredStudent={registeredStudent} courses={courses} />} />
         <Route

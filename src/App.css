@@ -112,6 +112,17 @@
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
+.form-group input[aria-invalid='true'],
+.form-group select[aria-invalid='true'] {
+  border-color: #dc2626;
+}
+
+.field-error {
+  margin: 0.4rem 0 0;
+  color: #b91c1c;
+  font-size: 0.8rem;
+}
+
 .btn {
   padding: 0.65rem 1.25rem;
   font-size: 0.925rem;
@@ -155,6 +166,29 @@
   margin: -0.5rem 0 1rem;
   color: #b91c1c;
   font-size: 0.875rem;
+}
+
+.feedback {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #86efac;
+  border-radius: 8px;
+  background: #f0fdf4;
+  color: #166534;
+  font-size: 0.9rem;
+}
+
+.feedback button {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
 }
 
 .student-summary .summary-card {
@@ -312,5 +346,9 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 0.25rem;
+  }
+
+  .feedback {
+    align-items: flex-start;
   }
 }

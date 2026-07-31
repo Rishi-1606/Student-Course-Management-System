@@ -9,18 +9,33 @@ const DEPARTMENTS = [
 const SEMESTERS = ['1', '2', '3', '4', '5', '6', '7', '8']
 
 function StudentForm({ student, setStudent, onSubmit }) {
+  const [errors, setErrors] = useState({})
+
   const handleChange = (e) => {
     const { name, value } = e.target
     setStudent((prev) => ({ ...prev, [name]: value }))
+    setErrors((prev) => ({ ...prev, [name]: '' }))
   }
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    onSubmit({ ...student })
+    const nextErrors = validateStudent(student)
+
+    if (Object.values(nextErrors).some(Boolean)) {
+      setErrors(nextErrors)
+      return
+    }
+
+    onSubmit({
+      ...student,
+      name: student.name.trim(),
+      rollNumber: student.rollNumber.trim(),
+      email: student.email.trim(),
+    })
   }
 
   return (
-    <form className="form" onSubmit={handleSubmit}>
+    <form className="form" noValidate onSubmit={handleSubmit}>
       <div className="form-grid">
         <div className="form-group">
           <label htmlFor="name">Student Name</label>
@@ -31,8 +46,10 @@ function StudentForm({ student, setStudent, onSubmit }) {
             value={student.name}
             onChange={handleChange}
             placeholder="Enter full name"
-            required
+            aria-describedby={errors.name ? 'name-error' : undefined}
+            aria-invalid={Boolean(errors.name)}
           />
+          {errors.name && <p id="name-error" className="field-error">{errors.name}</p>}
         </div>
 
         <div className="form-group">
@@ -44,8 +61,10 @@ function StudentForm({ student, setStudent, onSubmit }) {
             value={student.rollNumber}
             onChange={handleChange}
             placeholder="e.g. CS2024001"
-            required
+            aria-describedby={errors.rollNumber ? 'rollNumber-error' : undefined}
+            aria-invalid={Boolean(errors.rollNumber)}
           />
+          {errors.rollNumber && <p id="rollNumber-error" className="field-error">{errors.rollNumber}</p>}
         </div>
 
         <div className="form-group">
@@ -55,7 +74,8 @@ function StudentForm({ student, setStudent, onSubmit }) {
             name="department"
             value={student.department}
             onChange={handleChange}
-            required
+            aria-describedby={errors.department ? 'department-error' : undefined}
+            aria-invalid={Boolean(errors.department)}
           >
             <option value="">Select department</option>
             {DEPARTMENTS.map((dept) => (
@@ -64,6 +84,7 @@ function StudentForm({ student, setStudent, onSubmit }) {
               </option>
             ))}
           </select>
+          {errors.department && <p id="department-error" className="field-error">{errors.department}</p>}
         </div>
 
         <div className="form-group">
@@ -73,7 +94,8 @@ function StudentForm({ student, setStudent, onSubmit }) {
             name="semester"
             value={student.semester}
             onChange={handleChange}
-            required
+            aria-describedby={errors.semester ? 'semester-error' : undefined}
+            aria-invalid={Boolean(errors.semester)}
           >
             <option value="">Select semester</option>
             {SEMESTERS.map((sem) => (
@@ -82,6 +104,7 @@ function StudentForm({ student, setStudent, onSubmit }) {
               </option>
             ))}
           </select>
+          {errors.semester && <p id="semester-error" className="field-error">{errors.semester}</p>}
         </div>
 
         <div className="form-group form-group-full">
@@ -93,8 +116,10 @@ function StudentForm({ student, setStudent, onSubmit }) {
             value={student.email}
             onChange={handleChange}
             placeholder="student@college.edu"
-            required
+            aria-describedby={errors.email ? 'email-error' : undefined}
+            aria-invalid={Boolean(errors.email)}
           />
+          {errors.email && <p id="email-error" className="field-error">{errors.email}</p>}
         </div>
       </div>
 
@@ -105,4 +130,21 @@ function StudentForm({ student, setStudent, onSubmit }) {
   )
 }
 
+function validateStudent(student) {
+  const errors = {}
+
+  if (!student.name.trim()) errors.name = 'Enter the student name.'
+  if (!student.rollNumber.trim()) errors.rollNumber = 'Enter the roll number.'
+  if (!student.department) errors.department = 'Select a department.'
+  if (!SEMESTERS.includes(student.semester)) errors.semester = 'Select a valid semester.'
+  if (!student.email.trim()) {
+    errors.email = 'Enter an email address.'
+  } else if (!/^\S+@\S+\.\S+$/.test(student.email.trim())) {
+    errors.email = 'Enter a valid email address.'
+  }
+
+  return errors
+}
+
 export default StudentForm
+import { useState } from 'react'

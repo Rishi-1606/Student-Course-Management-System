@@ -6,13 +6,23 @@ const initialCourse = {
 }
 
 function CourseForm({ course, setCourse, onCancel, onSubmit, isEditing, error }) {
+  const [errors, setErrors] = useState({})
+
   const handleChange = (e) => {
     const { name, value } = e.target
     setCourse((prev) => ({ ...prev, [name]: value }))
+    setErrors((prev) => ({ ...prev, [name]: '' }))
   }
 
   const handleSubmit = (e) => {
     e.preventDefault()
+    const nextErrors = validateCourse(course)
+
+    if (Object.values(nextErrors).some(Boolean)) {
+      setErrors(nextErrors)
+      return
+    }
+
     onSubmit({
       courseCode: course.courseCode.trim(),
       courseName: course.courseName.trim(),
@@ -21,8 +31,13 @@ function CourseForm({ course, setCourse, onCancel, onSubmit, isEditing, error })
     })
   }
 
+  const handleCancel = () => {
+    setErrors({})
+    onCancel()
+  }
+
   return (
-    <form className="form" onSubmit={handleSubmit}>
+    <form className="form" noValidate onSubmit={handleSubmit}>
       <div className="form-grid">
         <div className="form-group">
           <label htmlFor="courseCode">Course Code</label>
@@ -33,8 +48,10 @@ function CourseForm({ course, setCourse, onCancel, onSubmit, isEditing, error })
             value={course.courseCode}
             onChange={handleChange}
             placeholder="e.g. CS101"
-            required
+            aria-describedby={errors.courseCode ? 'courseCode-error' : undefined}
+            aria-invalid={Boolean(errors.courseCode)}
           />
+          {errors.courseCode && <p id="courseCode-error" className="field-error">{errors.courseCode}</p>}
         </div>
 
         <div className="form-group">
@@ -46,8 +63,10 @@ function CourseForm({ course, setCourse, onCancel, onSubmit, isEditing, error })
             value={course.courseName}
             onChange={handleChange}
             placeholder="e.g. Data Structures"
-            required
+            aria-describedby={errors.courseName ? 'courseName-error' : undefined}
+            aria-invalid={Boolean(errors.courseName)}
           />
+          {errors.courseName && <p id="courseName-error" className="field-error">{errors.courseName}</p>}
         </div>
 
         <div className="form-group">
@@ -59,8 +78,10 @@ function CourseForm({ course, setCourse, onCancel, onSubmit, isEditing, error })
             value={course.facultyName}
             onChange={handleChange}
             placeholder="e.g. Dr. Smith"
-            required
+            aria-describedby={errors.facultyName ? 'facultyName-error' : undefined}
+            aria-invalid={Boolean(errors.facultyName)}
           />
+          {errors.facultyName && <p id="facultyName-error" className="field-error">{errors.facultyName}</p>}
         </div>
 
         <div className="form-group">
@@ -74,8 +95,10 @@ function CourseForm({ course, setCourse, onCancel, onSubmit, isEditing, error })
             placeholder="e.g. 4"
             min="1"
             max="10"
-            required
+            aria-describedby={errors.credits ? 'credits-error' : undefined}
+            aria-invalid={Boolean(errors.credits)}
           />
+          {errors.credits && <p id="credits-error" className="field-error">{errors.credits}</p>}
         </div>
       </div>
 
@@ -86,7 +109,7 @@ function CourseForm({ course, setCourse, onCancel, onSubmit, isEditing, error })
           {isEditing ? 'Update Course' : 'Add Course'}
         </button>
         {isEditing && (
-          <button type="button" className="btn btn-secondary" onClick={onCancel}>
+          <button type="button" className="btn btn-secondary" onClick={handleCancel}>
             Cancel
           </button>
         )}
@@ -95,5 +118,20 @@ function CourseForm({ course, setCourse, onCancel, onSubmit, isEditing, error })
   )
 }
 
+function validateCourse(course) {
+  const errors = {}
+  const credits = Number(course.credits)
+
+  if (!course.courseCode.trim()) errors.courseCode = 'Enter the course code.'
+  if (!course.courseName.trim()) errors.courseName = 'Enter the course name.'
+  if (!course.facultyName.trim()) errors.facultyName = 'Enter the faculty name.'
+  if (!Number.isInteger(credits) || credits < 1 || credits > 10) {
+    errors.credits = 'Credits must be a whole number from 1 to 10.'
+  }
+
+  return errors
+}
+
 export { initialCourse }
 export default CourseForm
+import { useState } from 'react'
