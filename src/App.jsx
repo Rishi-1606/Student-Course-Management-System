@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Layout from './components/Layout'
 import StudentForm from './components/StudentForm'
 import CourseForm, { initialCourse } from './components/CourseForm'
 import CourseList from './components/CourseList'
+import { loadCourses, loadStudent, saveCourses, saveStudent } from './utils/localStorage'
 import './App.css'
 
 const initialStudent = {
@@ -18,6 +19,22 @@ function App() {
   const [registeredStudent, setRegisteredStudent] = useState(null)
   const [course, setCourse] = useState(initialCourse)
   const [courses, setCourses] = useState([])
+  const [isDataLoaded, setIsDataLoaded] = useState(false)
+
+  useEffect(() => {
+    setRegisteredStudent(loadStudent())
+    setCourses(loadCourses())
+    setIsDataLoaded(true)
+  }, [])
+
+  useEffect(() => {
+    if (!isDataLoaded) {
+      return
+    }
+
+    saveStudent(registeredStudent)
+    saveCourses(courses)
+  }, [courses, isDataLoaded, registeredStudent])
 
   const handleStudentSubmit = (studentData) => {
     setRegisteredStudent(studentData)
