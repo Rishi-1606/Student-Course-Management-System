@@ -51,6 +51,32 @@ export function getStudentById(studentId) {
   return Promise.resolve(student)
 }
 
+export function updateStudent(studentId, data) {
+  const students = loadStudents()
+  let updated = null
+  const next = students.map((s) => {
+    if (s.id === studentId) {
+      updated = { ...s, ...data }
+      return updated
+    }
+    return s
+  })
+  if (!updated) return Promise.reject(new Error('Student not found.'))
+  saveStudents(next)
+  return Promise.resolve(updated)
+}
+
+export function changePassword(studentId, currentPassword, newPassword) {
+  const students = loadStudents()
+  const student = students.find((s) => s.id === studentId)
+  if (!student) return Promise.reject(new Error('Student not found.'))
+  if (student.password !== currentPassword)
+    return Promise.reject(new Error('Current password is incorrect.'))
+  const updated = { ...student, password: newPassword }
+  saveStudents(students.map((s) => (s.id === studentId ? updated : s)))
+  return Promise.resolve(updated)
+}
+
 export function deleteStudent(studentId) {
   saveStudents(loadStudents().filter((s) => s.id !== studentId))
   // Also remove all their courses

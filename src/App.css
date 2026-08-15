@@ -354,6 +354,89 @@
   border: 1px solid #e2e8f0;
 }
 
+/* ── Profile Header ───────────────────────────────────── */
+.profile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.profile-header h2 {
+  margin: 0;
+}
+
+.profile-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.profile-actions .btn {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.825rem;
+}
+
+/* ── Credit Meter ─────────────────────────────────────── */
+.credit-meter {
+  margin-bottom: 0.75rem;
+}
+
+.credit-meter-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.credit-meter-used {
+  font-weight: 600;
+  color: #334155;
+}
+
+.credit-text-safe   { color: #16a34a; font-weight: 600; }
+.credit-text-warning { color: #d97706; font-weight: 600; }
+.credit-text-danger  { color: #dc2626; font-weight: 600; }
+
+.credit-bar {
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.credit-bar-fill {
+  height: 100%;
+  background: #22c55e;
+  border-radius: 999px;
+  transition: width 0.4s ease, background 0.3s ease;
+}
+
+.credit-bar-warn { background: #f59e0b; }
+.credit-bar-full { background: #ef4444; }
+
+.credit-limit-msg {
+  margin: 1rem 0 0;
+  padding: 0.75rem 1rem;
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+  color: #b91c1c;
+  font-size: 0.9rem;
+}
+
+/* ── Section title row ────────────────────────────────── */
+.section-title-row {
+  margin-bottom: 0.75rem;
+}
+
+.section-title-row h2 {
+  margin: 0;
+}
+
 .auth-card-wide {
   max-width: 660px;
 }
