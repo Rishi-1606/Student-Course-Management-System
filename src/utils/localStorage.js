@@ -1,29 +1,33 @@
-const STUDENT_STORAGE_KEY = 'student-course-management.student'
-const COURSES_STORAGE_KEY = 'student-course-management.courses'
+const STUDENTS_KEY = 'scms.students'
+const COURSES_KEY = 'scms.courses'
 
-function readStoredValue(key, fallback) {
+function read(key, fallback) {
   try {
-    const storedValue = window.localStorage.getItem(key)
-    return storedValue ? JSON.parse(storedValue) : fallback
+    const raw = window.localStorage.getItem(key)
+    return raw ? JSON.parse(raw) : fallback
   } catch {
     return fallback
   }
 }
 
-export function saveStudent(student) {
-  window.localStorage.setItem(STUDENT_STORAGE_KEY, JSON.stringify(student))
+function write(key, value) {
+  window.localStorage.setItem(key, JSON.stringify(value))
 }
 
-export function loadStudent() {
-  const student = readStoredValue(STUDENT_STORAGE_KEY, null)
-  return student && typeof student === 'object' && !Array.isArray(student) ? student : null
+export function loadStudents() {
+  const data = read(STUDENTS_KEY, [])
+  return Array.isArray(data) ? data : []
 }
 
-export function saveCourses(courses) {
-  window.localStorage.setItem(COURSES_STORAGE_KEY, JSON.stringify(courses))
+export function saveStudents(students) {
+  write(STUDENTS_KEY, students)
 }
 
 export function loadCourses() {
-  const courses = readStoredValue(COURSES_STORAGE_KEY, [])
-  return Array.isArray(courses) ? courses : []
+  const data = read(COURSES_KEY, [])
+  return Array.isArray(data) ? data : []
+}
+
+export function saveCourses(courses) {
+  write(COURSES_KEY, courses)
 }

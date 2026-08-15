@@ -4,7 +4,7 @@ import Layout from './components/Layout'
 import StudentForm from './components/StudentForm'
 import CourseForm, { initialCourse } from './components/CourseForm'
 import CourseList from './components/CourseList'
-import { loadCourses, loadStudent, saveCourses, saveStudent } from './utils/localStorage'
+import { createCourse, createStudent, deleteCourse, getCourses, getStudents, updateCourse } from './utils/api'
 import './App.css'
 
 const initialStudent = {
@@ -18,35 +18,42 @@ const initialStudent = {
 function App() {
   const [student, setStudent] = useState(initialStudent)
   const [registeredStudent, setRegisteredStudent] = useState(null)
+  const [students, setStudents] = useState([])
   const [course, setCourse] = useState(initialCourse)
   const [courses, setCourses] = useState([])
   const [editingCourseId, setEditingCourseId] = useState(null)
   const [courseError, setCourseError] = useState('')
   const [feedback, setFeedback] = useState(null)
-  const [isDataLoaded, setIsDataLoaded] = useState(false)
 
   useEffect(() => {
-    setRegisteredStudent(loadStudent())
-    setCourses(loadCourses())
-    setIsDataLoaded(true)
+    getStudents().then((records) => {
+      setStudents(records)
+      setRegisteredStudent(records[0] ?? null)
+    }).catch((error) => setFeedback({ type: 'error', message: error.message }))
   }, [])
 
   useEffect(() => {
-    if (!isDataLoaded) {
+    if (!registeredStudent) {
+      setCourses([])
       return
     }
+    getCourses(registeredStudent.id).then(setCourses)
+      .catch((error) => setFeedback({ type: 'error', message: error.message }))
+  }, [registeredStudent])
 
-    saveStudent(registeredStudent)
-    saveCourses(courses)
-  }, [courses, isDataLoaded, registeredStudent])
-
-  const handleStudentSubmit = (studentData) => {
-    setRegisteredStudent(studentData)
-    setStudent(initialStudent)
-    setFeedback({ type: 'success', message: 'Student registered successfully.' })
+  const handleStudentSubmit = async (studentData) => {
+    try {
+      const savedStudent = await createStudent(studentData)
+      setStudents((previous) => [...previous, savedStudent].sort((a, b) => a.name.localeCompare(b.name)))
+      setRegisteredStudent(savedStudent)
+      setStudent(initialStudent)
+      setFeedback({ type: 'success', message: 'Student registered permanently.' })
+    } catch (error) {
+      setFeedback({ type: 'error', message: error.message })
+    }
   }
 
-  const handleCourseSubmit = (courseData) => {
+  const handleCourseSubmit = async (courseData) => {
     const duplicateCourse = courses.find((existingCourse) => (
       existingCourse.courseCode.toLowerCase() === courseData.courseCode.toLowerCase()
       && existingCourse.id !== editingCourseId
@@ -58,20 +65,27 @@ function App() {
     }
 
     if (editingCourseId) {
-      setCourses((prev) => prev.map((existingCourse) => (
-        existingCourse.id === editingCourseId
-          ? { ...courseData, id: existingCourse.id }
-          : existingCourse
-      )))
-      setEditingCourseId(null)
-      setFeedback({ type: 'success', message: 'Course updated successfully.' })
-    } else {
-      setCourses((prev) => [...prev, { ...courseData, id: crypto.randomUUID() }])
-      setFeedback({ type: 'success', message: 'Course added successfully.' })
+      try {
+        const savedCourse = await updateCourse(editingCourseId, courseData)
+        setCourses((previous) => previous.map((item) => (item.id === editingCourseId ? savedCourse : item)))
+        setEditingCourseId(null)
+        setCourse(initialCourse)
+        setCourseError('')
+        setFeedback({ type: 'success', message: 'Course updated permanently.' })
+      } catch (error) {
+        setCourseError(error.message)
+      }
+      return
     }
-
-    setCourse(initialCourse)
-    setCourseError('')
+    try {
+      const savedCourse = await createCourse({ ...courseData, studentId: registeredStudent.id })
+      setCourses((previous) => [...previous, savedCourse])
+      setCourse(initialCourse)
+      setCourseError('')
+      setFeedback({ type: 'success', message: 'Course registered permanently.' })
+    } catch (error) {
+      setCourseError(error.message)
+    }
   }
 
   const handleEditCourse = (courseToEdit) => {
@@ -91,13 +105,19 @@ function App() {
     setCourseError('')
   }
 
-  const handleDeleteCourse = (courseId) => {
+  const handleDeleteCourse = async (courseId) => {
     if (!window.confirm('Delete this course?')) {
       return
     }
 
-    setCourses((prev) => prev.filter((course) => course.id !== courseId))
-    setFeedback({ type: 'success', message: 'Course deleted successfully.' })
+    try {
+      await deleteCourse(courseId)
+      setCourses((prev) => prev.filter((course) => course.id !== courseId))
+      setFeedback({ type: 'success', message: 'Course deleted successfully.' })
+    } catch (error) {
+      setFeedback({ type: 'error', message: error.message })
+      return
+    }
 
     if (editingCourseId === courseId) {
       handleCancelCourseEdit()
@@ -119,8 +139,10 @@ function App() {
           element={(
             <StudentRegistration
               registeredStudent={registeredStudent}
+              students={students}
               student={student}
               setStudent={setStudent}
+              onStudentSelect={setRegisteredStudent}
               onSubmit={handleStudentSubmit}
             />
           )}
@@ -169,12 +191,19 @@ function Dashboard({ courses, registeredStudent }) {
   )
 }
 
-function StudentRegistration({ registeredStudent, student, setStudent, onSubmit }) {
+function StudentRegistration({ registeredStudent, students, student, setStudent, onStudentSelect, onSubmit }) {
   return (
     <>
       <section className="section">
         <h2>Student Registration</h2>
         <p className="section-desc">Register your student details before adding courses.</p>
+        {students.length > 0 && (
+          <label className="field-group">Selected student
+            <select value={registeredStudent?.id ?? ''} onChange={(event) => onStudentSelect(students.find((item) => item.id === Number(event.target.value)))}>
+              {students.map((item) => <option key={item.id} value={item.id}>{item.name} ({item.rollNumber})</option>)}
+            </select>
+          </label>
+        )}
         <StudentForm student={student} setStudent={setStudent} onSubmit={onSubmit} />
       </section>
       {registeredStudent && <StudentSummary student={registeredStudent} />}

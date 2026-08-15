@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 const DEPARTMENTS = [
   'Computer Science',
   'Information Technology',
@@ -147,4 +149,3 @@ function validateStudent(student) {
 }
 
 export default StudentForm
-import { useState } from 'react'

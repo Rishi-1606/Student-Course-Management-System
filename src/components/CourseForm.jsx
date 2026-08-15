@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 const initialCourse = {
   courseCode: '',
   courseName: '',
@@ -134,4 +136,3 @@ function validateCourse(course) {
 
 export { initialCourse }
 export default CourseForm
-import { useState } from 'react'
