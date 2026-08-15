@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Clearing data…</title>
+  <style>
+    body { font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f0fdf4; }
+    p { font-size: 1.2rem; color: #166534; }
+  </style>
+</head>
+<body>
+  <p id="msg">Clearing all data…</p>
+  <script>
+    localStorage.removeItem('scms.students');
+    localStorage.removeItem('scms.courses');
+    sessionStorage.clear();
+    document.getElementById('msg').textContent = '✅ Done! Redirecting to login…';
+    setTimeout(() => { window.location.href = '/login'; }, 1000);
+  </script>
+</body>
+</html>

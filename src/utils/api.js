@@ -1,9 +1,33 @@
 import { loadStudents, saveStudents, loadCourses, saveCourses } from './localStorage'
 
-// Generate the next auto-increment ID from an array of records
+const ADMIN_USERNAME = 'admin'
+const ADMIN_PASSWORD = 'admin123'
+
 function nextId(items) {
   return items.length === 0 ? 1 : Math.max(...items.map((item) => item.id)) + 1
 }
+
+// ── Auth ──────────────────────────────────────────────────
+
+/**
+ * Attempt login. Returns { role, studentId? } on success or throws.
+ */
+export function login(identifier, password) {
+  // Admin check
+  if (identifier === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+    return Promise.resolve({ role: 'admin' })
+  }
+
+  // Student check (identifier = rollNumber)
+  const students = loadStudents()
+  const student = students.find(
+    (s) => s.rollNumber.toLowerCase() === identifier.toLowerCase() && s.password === password
+  )
+  if (!student) return Promise.reject(new Error('Invalid roll number or password.'))
+  return Promise.resolve({ role: 'student', studentId: student.id })
+}
+
+// ── Students ──────────────────────────────────────────────
 
 export function getStudents() {
   return Promise.resolve(loadStudents())
@@ -11,14 +35,37 @@ export function getStudents() {
 
 export function createStudent(student) {
   const students = loadStudents()
+  const duplicate = students.find(
+    (s) => s.rollNumber.toLowerCase() === student.rollNumber.toLowerCase()
+  )
+  if (duplicate) return Promise.reject(new Error('A student with this roll number already exists.'))
   const newStudent = { ...student, id: nextId(students) }
   saveStudents([...students, newStudent])
   return Promise.resolve(newStudent)
 }
 
+export function getStudentById(studentId) {
+  const students = loadStudents()
+  const student = students.find((s) => s.id === studentId)
+  if (!student) return Promise.reject(new Error('Student not found.'))
+  return Promise.resolve(student)
+}
+
+export function deleteStudent(studentId) {
+  saveStudents(loadStudents().filter((s) => s.id !== studentId))
+  // Also remove all their courses
+  saveCourses(loadCourses().filter((c) => c.studentId !== studentId))
+  return Promise.resolve()
+}
+
+// ── Courses ───────────────────────────────────────────────
+
 export function getCourses(studentId) {
-  const courses = loadCourses()
-  return Promise.resolve(courses.filter((course) => course.studentId === studentId))
+  return Promise.resolve(loadCourses().filter((c) => c.studentId === studentId))
+}
+
+export function getAllCourses() {
+  return Promise.resolve(loadCourses())
 }
 
 export function createCourse(course) {
@@ -44,7 +91,6 @@ export function updateCourse(courseId, courseData) {
 }
 
 export function deleteCourse(courseId) {
-  const courses = loadCourses()
-  saveCourses(courses.filter((course) => course.id !== courseId))
+  saveCourses(loadCourses().filter((c) => c.id !== courseId))
   return Promise.resolve()
 }
