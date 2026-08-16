@@ -1,23 +1,9 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { createStudent } from '../utils/api'
-import { saveSession } from '../utils/localStorage'
-
-const DEPARTMENTS = [
-  'Computer Science',
-  'Information Technology',
-  'Electronics',
-  'Mechanical',
-  'Civil',
-]
-
-const SEMESTERS = ['1', '2', '3', '4', '5', '6', '7', '8']
 
 const initialForm = {
   name: '',
-  rollNumber: '',
-  department: '',
-  semester: '',
   email: '',
   password: '',
   confirmPassword: '',
@@ -29,6 +15,7 @@ function RegisterPage() {
   const [errors, setErrors] = useState({})
   const [serverError, setServerError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [generatedPRN, setGeneratedPRN] = useState(null) // Show PRN after success
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -40,9 +27,6 @@ function RegisterPage() {
   const validate = () => {
     const next = {}
     if (!form.name.trim()) next.name = 'Enter your full name.'
-    if (!form.rollNumber.trim()) next.rollNumber = 'Enter your roll number.'
-    if (!form.department) next.department = 'Select a department.'
-    if (!SEMESTERS.includes(form.semester)) next.semester = 'Select a semester.'
     if (!form.email.trim()) {
       next.email = 'Enter your email.'
     } else if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) {
@@ -68,16 +52,14 @@ function RegisterPage() {
 
     setLoading(true)
     try {
-      // Strip confirmPassword before saving
       const { confirmPassword, ...studentData } = form
       const saved = await createStudent({
         ...studentData,
         name: studentData.name.trim(),
-        rollNumber: studentData.rollNumber.trim(),
         email: studentData.email.trim(),
       })
-      saveSession({ role: 'student', studentId: saved.id })
-      navigate('/dashboard', { replace: true })
+      // Don't auto-login — show PRN first so student can save it
+      setGeneratedPRN(saved.prn)
     } catch (err) {
       setServerError(err.message)
     } finally {
@@ -85,77 +67,106 @@ function RegisterPage() {
     }
   }
 
+  // ── PRN reveal screen ─────────────────────────────────────
+  if (generatedPRN) {
+    return (
+      <div className="auth-page">
+        <div className="auth-card">
+          <div className="auth-header">
+            <div className="auth-icon">🎉</div>
+            <h1>Account Created!</h1>
+            <p>Your Permanent Registration Number (PRN) has been generated. <strong>Save it — you will need it to log in every time.</strong></p>
+          </div>
+
+          <div className="prn-display">
+            <p className="prn-label">Your PRN</p>
+            <p className="prn-value">{generatedPRN}</p>
+            <p className="prn-hint">📋 Write this down or take a screenshot before continuing.</p>
+          </div>
+
+          <button
+            type="button"
+            className="btn btn-primary btn-full"
+            style={{ marginTop: '1.5rem' }}
+            onClick={() => navigate('/login', { replace: true })}
+          >
+            Proceed to Login →
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Registration form ─────────────────────────────────────
   return (
     <div className="auth-page">
-      <div className="auth-card auth-card-wide">
+      <div className="auth-card">
         <div className="auth-header">
           <div className="auth-icon">📝</div>
           <h1>Create Account</h1>
-          <p>Register as a new student</p>
+          <p>Register to get your PRN and access the course portal</p>
         </div>
 
         <form className="auth-form" onSubmit={handleSubmit} noValidate>
-          <div className="form-grid">
-            <div className="form-group">
-              <label htmlFor="name">Full Name</label>
-              <input id="name" name="name" type="text" value={form.name}
-                onChange={handleChange} placeholder="Enter full name"
-                aria-invalid={Boolean(errors.name)} />
-              {errors.name && <p className="field-error">{errors.name}</p>}
-            </div>
+          <div className="form-group">
+            <label htmlFor="reg-name">Full Name</label>
+            <input
+              id="reg-name"
+              name="name"
+              type="text"
+              value={form.name}
+              onChange={handleChange}
+              placeholder="Enter your full name"
+              autoFocus
+              autoComplete="name"
+              aria-invalid={Boolean(errors.name)}
+            />
+            {errors.name && <p className="field-error">{errors.name}</p>}
+          </div>
 
-            <div className="form-group">
-              <label htmlFor="rollNumber">Roll Number</label>
-              <input id="rollNumber" name="rollNumber" type="text" value={form.rollNumber}
-                onChange={handleChange} placeholder="e.g. CS2024001"
-                aria-invalid={Boolean(errors.rollNumber)} />
-              {errors.rollNumber && <p className="field-error">{errors.rollNumber}</p>}
-            </div>
+          <div className="form-group">
+            <label htmlFor="reg-email">Email</label>
+            <input
+              id="reg-email"
+              name="email"
+              type="email"
+              value={form.email}
+              onChange={handleChange}
+              placeholder="student@college.edu"
+              autoComplete="email"
+              aria-invalid={Boolean(errors.email)}
+            />
+            {errors.email && <p className="field-error">{errors.email}</p>}
+          </div>
 
-            <div className="form-group">
-              <label htmlFor="department">Department</label>
-              <select id="department" name="department" value={form.department}
-                onChange={handleChange} aria-invalid={Boolean(errors.department)}>
-                <option value="">Select department</option>
-                {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
-              </select>
-              {errors.department && <p className="field-error">{errors.department}</p>}
-            </div>
+          <div className="form-group">
+            <label htmlFor="reg-password">Password</label>
+            <input
+              id="reg-password"
+              name="password"
+              type="password"
+              value={form.password}
+              onChange={handleChange}
+              placeholder="Min. 6 characters"
+              autoComplete="new-password"
+              aria-invalid={Boolean(errors.password)}
+            />
+            {errors.password && <p className="field-error">{errors.password}</p>}
+          </div>
 
-            <div className="form-group">
-              <label htmlFor="semester">Semester</label>
-              <select id="semester" name="semester" value={form.semester}
-                onChange={handleChange} aria-invalid={Boolean(errors.semester)}>
-                <option value="">Select semester</option>
-                {SEMESTERS.map((s) => <option key={s} value={s}>Semester {s}</option>)}
-              </select>
-              {errors.semester && <p className="field-error">{errors.semester}</p>}
-            </div>
-
-            <div className="form-group form-group-full">
-              <label htmlFor="email">Email</label>
-              <input id="email" name="email" type="email" value={form.email}
-                onChange={handleChange} placeholder="student@college.edu"
-                aria-invalid={Boolean(errors.email)} />
-              {errors.email && <p className="field-error">{errors.email}</p>}
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="reg-password">Password</label>
-              <input id="reg-password" name="password" type="password" value={form.password}
-                onChange={handleChange} placeholder="Min. 6 characters"
-                autoComplete="new-password" aria-invalid={Boolean(errors.password)} />
-              {errors.password && <p className="field-error">{errors.password}</p>}
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="confirmPassword">Confirm Password</label>
-              <input id="confirmPassword" name="confirmPassword" type="password"
-                value={form.confirmPassword} onChange={handleChange}
-                placeholder="Re-enter password" autoComplete="new-password"
-                aria-invalid={Boolean(errors.confirmPassword)} />
-              {errors.confirmPassword && <p className="field-error">{errors.confirmPassword}</p>}
-            </div>
+          <div className="form-group">
+            <label htmlFor="reg-confirm">Confirm Password</label>
+            <input
+              id="reg-confirm"
+              name="confirmPassword"
+              type="password"
+              value={form.confirmPassword}
+              onChange={handleChange}
+              placeholder="Re-enter password"
+              autoComplete="new-password"
+              aria-invalid={Boolean(errors.confirmPassword)}
+            />
+            {errors.confirmPassword && <p className="field-error">{errors.confirmPassword}</p>}
           </div>
 
           {serverError && <p className="auth-error" role="alert">{serverError}</p>}
@@ -166,7 +177,7 @@ function RegisterPage() {
         </form>
 
         <p className="auth-footer">
-          Already registered? <Link to="/login">Sign in</Link>
+          Already registered? <Link to="/login">Sign in with PRN</Link>
         </p>
       </div>
     </div>

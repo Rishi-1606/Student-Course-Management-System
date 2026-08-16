@@ -796,3 +796,37 @@
   transform: translateY(-1px);
 }
 
+
+/* -- PRN Reveal Screen --------------------------------------- */
+.prn-display {
+  margin: 1.5rem 0;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+  border: 2px solid #93c5fd;
+  border-radius: 14px;
+  text-align: center;
+}
+
+.prn-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #1d4ed8;
+  margin: 0 0 0.5rem;
+}
+
+.prn-value {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: #1e3a8a;
+  letter-spacing: 0.05em;
+  margin: 0 0 0.75rem;
+  font-family: 'Courier New', monospace;
+}
+
+.prn-hint {
+  font-size: 0.82rem;
+  color: #1d4ed8;
+  margin: 0;
+}

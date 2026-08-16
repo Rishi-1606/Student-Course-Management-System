@@ -40,13 +40,13 @@ function LoginPage() {
 
         <form className="auth-form" onSubmit={handleSubmit} noValidate>
           <div className="form-group">
-            <label htmlFor="identifier">Roll Number / Username</label>
+            <label htmlFor="identifier">PRN / Username</label>
             <input
               id="identifier"
               type="text"
               value={identifier}
               onChange={(e) => { setIdentifier(e.target.value); setError('') }}
-              placeholder="e.g. CS2024001 or admin"
+              placeholder="e.g. PRN-1001 or admin"
               autoFocus
               autoComplete="username"
             />
@@ -72,7 +72,7 @@ function LoginPage() {
         </form>
 
         <p className="auth-footer">
-          New student? <Link to="/register">Create an account</Link>
+          New student? <Link to="/register">Create an account & get your PRN</Link>
         </p>
       </div>
     </div>

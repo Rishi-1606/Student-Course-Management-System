@@ -1,4 +1,4 @@
-import { loadStudents, saveStudents, loadCourses, saveCourses } from './localStorage'
+import { loadStudents, saveStudents, loadCourses, saveCourses, loadCatalog, saveCatalog } from './localStorage'
 
 const ADMIN_USERNAME = 'admin'
 const ADMIN_PASSWORD = 'admin123'
@@ -18,12 +18,12 @@ export function login(identifier, password) {
     return Promise.resolve({ role: 'admin' })
   }
 
-  // Student check (identifier = rollNumber)
+  // Student check (identifier = prn)
   const students = loadStudents()
   const student = students.find(
-    (s) => s.rollNumber.toLowerCase() === identifier.toLowerCase() && s.password === password
+    (s) => s.prn.toLowerCase() === identifier.toLowerCase() && s.password === password
   )
-  if (!student) return Promise.reject(new Error('Invalid roll number or password.'))
+  if (!student) return Promise.reject(new Error('Invalid PRN or password.'))
   return Promise.resolve({ role: 'student', studentId: student.id })
 }
 
@@ -35,11 +35,15 @@ export function getStudents() {
 
 export function createStudent(student) {
   const students = loadStudents()
+  const newId = nextId(students)
+  const prn = `PRN-${1000 + newId}`
+  
   const duplicate = students.find(
-    (s) => s.rollNumber.toLowerCase() === student.rollNumber.toLowerCase()
+    (s) => s.email.toLowerCase() === student.email.toLowerCase()
   )
-  if (duplicate) return Promise.reject(new Error('A student with this roll number already exists.'))
-  const newStudent = { ...student, id: nextId(students) }
+  if (duplicate) return Promise.reject(new Error('A student with this email already exists.'))
+  
+  const newStudent = { ...student, id: newId, prn }
   saveStudents([...students, newStudent])
   return Promise.resolve(newStudent)
 }
@@ -119,4 +123,58 @@ export function updateCourse(courseId, courseData) {
 export function deleteCourse(courseId) {
   saveCourses(loadCourses().filter((c) => c.id !== courseId))
   return Promise.resolve()
+}
+
+// ── Catalog ───────────────────────────────────────────────
+
+export function seedCatalog() {
+  const existing = loadCatalog()
+  if (existing) return existing
+
+  const catalog = []
+  let id = 1
+
+  const branches = ['Computer Science', 'Information Technology', 'Electronics', 'Mechanical', 'Civil']
+  const branchCores = {
+    'Computer Science': ['Programming', 'Data Structures', 'Operating Systems', 'Databases', 'Algorithms', 'Networking', 'AI Fundamentals', 'Cyber Security'],
+    'Information Technology': ['Web Dev', 'IT Infrastructure', 'Cloud Computing', 'Data Analytics', 'Software Eng', 'Mobile Apps', 'Information Systems', 'IT Security'],
+    'Electronics': ['Circuit Design', 'Digital Logic', 'Microprocessors', 'Signals & Systems', 'Control Systems', 'VLSI', 'Embedded Systems', 'Communication'],
+    'Mechanical': ['Thermodynamics', 'Fluid Mechanics', 'Machine Design', 'Manufacturing', 'Heat Transfer', 'Robotics', 'CAD/CAM', 'Automotive'],
+    'Civil': ['Structural Analysis', 'Fluid Mechanics', 'Surveying', 'Geotech', 'Transportation', 'Environmental', 'Construction', 'Town Planning']
+  }
+
+  const electivesA = ['Intro to AI', 'Blockchain Basics', 'Climate Tech', 'Quantum Computing', 'Data Privacy']
+  const electivesB = ['Photography', 'Business Management', 'Psychology', 'Financial Literacy', 'Public Speaking']
+
+  branches.forEach(branch => {
+    for (let sem = 1; sem <= 8; sem++) {
+      // 4 Core courses
+      for (let i = 0; i < 4; i++) {
+        const coreName = `${branchCores[branch][i % 8]} - Part ${sem}`
+        catalog.push({ id: id++, type: 'core', courseCode: `${branch.substring(0,2).toUpperCase()}${sem}0${i+1}`, courseName: coreName, facultyName: 'Dr. Smith', credits: Math.floor(Math.random() * 4) + 1, department: branch, semester: String(sem) })
+      }
+      // 1 Aptitude
+      catalog.push({ id: id++, type: 'aptitude', courseCode: `APT${sem}01`, courseName: `Aptitude & Soft Skills ${sem}`, facultyName: 'Prof. Johnson', credits: 2, department: branch, semester: String(sem) })
+      // 1 Project
+      catalog.push({ id: id++, type: 'project', courseCode: `PRJ${sem}01`, courseName: `Semester ${sem} Project`, facultyName: 'Dr. Guide', credits: 4, department: branch, semester: String(sem) })
+      
+      // Elective A pool (5 options)
+      electivesA.forEach((ea, i) => {
+        catalog.push({ id: id++, type: 'elective_a', courseCode: `ELA${sem}0${i+1}`, courseName: ea, facultyName: 'Guest Lecturer', credits: 3, department: branch, semester: String(sem) })
+      })
+      // Elective B pool (5 options)
+      electivesB.forEach((eb, i) => {
+        catalog.push({ id: id++, type: 'elective_b', courseCode: `ELB${sem}0${i+1}`, courseName: eb, facultyName: 'Guest Lecturer', credits: 3, department: branch, semester: String(sem) })
+      })
+    }
+  })
+
+  saveCatalog(catalog)
+  return catalog
+}
+
+export function getCatalog(department, semester) {
+  const catalog = loadCatalog() || seedCatalog()
+  if (!department || !semester) return Promise.resolve(catalog)
+  return Promise.resolve(catalog.filter(c => c.department === department && c.semester === semester))
 }

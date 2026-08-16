@@ -1,5 +1,6 @@
 const STUDENTS_KEY = 'scms.students'
 const COURSES_KEY = 'scms.courses'
+const CATALOG_KEY = 'scms.catalog'
 const SESSION_KEY = 'scms.session'
 
 function read(key, fallback, storage = window.localStorage) {
@@ -25,7 +26,7 @@ export function saveStudents(students) {
   write(STUDENTS_KEY, students)
 }
 
-// ── Courses ───────────────────────────────────────────────
+// ── Courses (Enrollments) ─────────────────────────────────
 export function loadCourses() {
   const data = read(COURSES_KEY, [])
   return Array.isArray(data) ? data : []
@@ -33,6 +34,16 @@ export function loadCourses() {
 
 export function saveCourses(courses) {
   write(COURSES_KEY, courses)
+}
+
+// ── Master Catalog ────────────────────────────────────────
+export function loadCatalog() {
+  const data = read(CATALOG_KEY, null)
+  return Array.isArray(data) ? data : null
+}
+
+export function saveCatalog(catalog) {
+  write(CATALOG_KEY, catalog)
 }
 
 // ── Session (sessionStorage — clears on tab close) ────────
