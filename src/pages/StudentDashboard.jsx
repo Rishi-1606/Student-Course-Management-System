@@ -6,6 +6,7 @@ import {
 } from '../utils/api'
 import CourseForm, { initialCourse } from '../components/CourseForm'
 import CourseList from '../components/CourseList'
+import { useToast } from '../components/Toast'
 
 const CREDIT_LIMIT = 24
 const DEPARTMENTS = ['Computer Science', 'Information Technology', 'Electronics', 'Mechanical', 'Civil']
@@ -208,19 +209,19 @@ function CreditMeter({ used, limit }) {
 // ── Student Dashboard ─────────────────────────────────────
 function StudentDashboard() {
   const session = loadSession()
+  const toast = useToast()
   const [student, setStudent] = useState(null)
   const [courses, setCourses] = useState([])
   const [course, setCourse] = useState(initialCourse)
   const [editingCourseId, setEditingCourseId] = useState(null)
   const [courseError, setCourseError] = useState('')
-  const [feedback, setFeedback] = useState(null)
   const [profileMode, setProfileMode] = useState('view') // 'view' | 'edit' | 'password'
 
   useEffect(() => {
     getStudentById(session.studentId)
       .then((s) => { setStudent(s); return getCourses(s.id) })
       .then(setCourses)
-      .catch((err) => setFeedback({ type: 'error', message: err.message }))
+      .catch((err) => toast(err.message, 'error'))
   }, [session.studentId])
 
   const totalCredits = courses.reduce((sum, c) => sum + Number(c.credits), 0)
@@ -256,12 +257,12 @@ function StudentDashboard() {
         setCourses((prev) => prev.map((c) => (c.id === editingCourseId ? saved : c)))
         setEditingCourseId(null)
         setCourse(initialCourse)
-        setFeedback({ type: 'success', message: 'Course updated.' })
+        toast('Course updated successfully.')
       } else {
         const saved = await createCourse({ ...courseData, studentId: session.studentId })
         setCourses((prev) => [...prev, saved])
         setCourse(initialCourse)
-        setFeedback({ type: 'success', message: 'Course registered.' })
+        toast('Course registered successfully.')
       }
       setCourseError('')
     } catch (err) {
@@ -286,10 +287,10 @@ function StudentDashboard() {
     try {
       await deleteCourse(courseId)
       setCourses((prev) => prev.filter((c) => c.id !== courseId))
-      setFeedback({ type: 'success', message: 'Course deleted.' })
+      toast('Course deleted.')
       if (editingCourseId === courseId) handleCancelCourse()
     } catch (err) {
-      setFeedback({ type: 'error', message: err.message })
+      toast(err.message, 'error')
     }
   }
 
@@ -299,28 +300,25 @@ function StudentDashboard() {
       const updated = await updateStudent(session.studentId, data)
       setStudent(updated)
       setProfileMode('view')
-      setFeedback({ type: 'success', message: 'Profile updated successfully.' })
+      toast('Profile updated successfully.')
     } catch (err) {
-      setFeedback({ type: 'error', message: err.message })
+      toast(err.message, 'error')
     }
   }
 
   const handlePasswordSave = async (currentPassword, newPassword) => {
     await changePassword(session.studentId, currentPassword, newPassword)
     setProfileMode('view')
-    setFeedback({ type: 'success', message: 'Password changed successfully.' })
+    toast('Password changed successfully.')
   }
 
   if (!student) return <div className="section empty-state"><p>Loading…</p></div>
 
+  const creditsUsed = totalCredits
+  const creditsLeft = CREDIT_LIMIT - creditsUsed
+
   return (
     <>
-      {feedback && (
-        <div className={`feedback feedback-${feedback.type}`} role="status">
-          <span>{feedback.message}</span>
-          <button type="button" onClick={() => setFeedback(null)}>Dismiss</button>
-        </div>
-      )}
 
       {/* ── Profile section ── */}
       <section className="section student-summary">
@@ -370,6 +368,41 @@ function StudentDashboard() {
         )}
       </section>
 
+      {/* ── Stats cards ── */}
+      <section className="section">
+        <h2>Overview</h2>
+        <div className="stats-grid">
+          <div className="stat-card">
+            <span className="stat-icon">📚</span>
+            <div>
+              <p className="stat-value">{courses.length}</p>
+              <p className="stat-label">Courses Registered</p>
+            </div>
+          </div>
+          <div className="stat-card">
+            <span className="stat-icon">⚡</span>
+            <div>
+              <p className="stat-value">{creditsUsed}</p>
+              <p className="stat-label">Credits Used</p>
+            </div>
+          </div>
+          <div className={`stat-card ${creditsLeft <= 0 ? 'stat-card-danger' : creditsLeft <= 6 ? 'stat-card-warn' : 'stat-card-safe'}`}>
+            <span className="stat-icon">{creditsLeft <= 0 ? '🚫' : '✅'}</span>
+            <div>
+              <p className="stat-value">{Math.max(creditsLeft, 0)}</p>
+              <p className="stat-label">Credits Remaining</p>
+            </div>
+          </div>
+          <div className="stat-card">
+            <span className="stat-icon">🎓</span>
+            <div>
+              <p className="stat-value">Sem {student.semester}</p>
+              <p className="stat-label">{student.department}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── Course registration section ── */}
       <section className="section">
         <div className="section-title-row">
@@ -403,7 +436,12 @@ function StudentDashboard() {
       <section className="section">
         <h2>My Courses</h2>
         <p className="section-desc">All courses registered for this semester.</p>
-        <CourseList courses={courses} onDelete={handleDeleteCourse} onEdit={handleEditCourse} />
+        <CourseList
+          courses={courses}
+          onDelete={handleDeleteCourse}
+          onEdit={handleEditCourse}
+          studentName={student.name}
+        />
       </section>
     </>
   )

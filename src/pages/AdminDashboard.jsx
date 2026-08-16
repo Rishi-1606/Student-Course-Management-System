@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react'
 import { getStudents, getAllCourses, deleteCourse, deleteStudent } from '../utils/api'
+import { useToast } from '../components/Toast'
 
 function AdminDashboard() {
+  const toast = useToast()
   const [students, setStudents] = useState([])
   const [allCourses, setAllCourses] = useState([])
   const [expandedId, setExpandedId] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [feedback, setFeedback] = useState(null)
+
 
   useEffect(() => {
     Promise.all([getStudents(), getAllCourses()])
       .then(([s, c]) => { setStudents(s); setAllCourses(c) })
-      .catch((err) => setFeedback({ type: 'error', message: err.message }))
+      .catch((err) => toast(err.message, 'error'))
   }, [])
 
   const coursesFor = (studentId) => allCourses.filter((c) => c.studentId === studentId)
@@ -21,9 +23,9 @@ function AdminDashboard() {
     try {
       await deleteCourse(courseId)
       setAllCourses((prev) => prev.filter((c) => c.id !== courseId))
-      setFeedback({ type: 'success', message: 'Course deleted.' })
+      toast('Course deleted.')
     } catch (err) {
-      setFeedback({ type: 'error', message: err.message })
+      toast(err.message, 'error')
     }
   }
 
@@ -34,9 +36,9 @@ function AdminDashboard() {
       setStudents((prev) => prev.filter((s) => s.id !== studentId))
       setAllCourses((prev) => prev.filter((c) => c.studentId !== studentId))
       if (expandedId === studentId) setExpandedId(null)
-      setFeedback({ type: 'success', message: 'Student and their courses deleted.' })
+      toast('Student and their courses deleted.')
     } catch (err) {
-      setFeedback({ type: 'error', message: err.message })
+      toast(err.message, 'error')
     }
   }
 
@@ -50,12 +52,6 @@ function AdminDashboard() {
 
   return (
     <>
-      {feedback && (
-        <div className={`feedback feedback-${feedback.type}`} role="status">
-          <span>{feedback.message}</span>
-          <button type="button" onClick={() => setFeedback(null)}>Dismiss</button>
-        </div>
-      )}
 
       <section className="section">
         <h2>All Students</h2>
