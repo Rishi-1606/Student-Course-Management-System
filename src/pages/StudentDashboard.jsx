@@ -1,25 +1,18 @@
 import { useState, useEffect } from 'react'
 import { loadSession } from '../utils/localStorage'
 import {
-  getStudentById, getCourses, createCourse, updateCourse, deleteCourse,
-  updateStudent, changePassword,
+  getStudentById, getCourses, createCourse, deleteCourse,
+  updateStudent, changePassword, getCatalog,
 } from '../utils/api'
-import CourseForm, { initialCourse } from '../components/CourseForm'
 import CourseList from '../components/CourseList'
 import { useToast } from '../components/Toast'
 
-const CREDIT_LIMIT = 24
 const DEPARTMENTS = ['Computer Science', 'Information Technology', 'Electronics', 'Mechanical', 'Civil']
 const SEMESTERS = ['1', '2', '3', '4', '5', '6', '7', '8']
 
 // ── Edit Profile Form ─────────────────────────────────────
 function EditProfileForm({ student, onSubmit, onCancel }) {
-  const [form, setForm] = useState({
-    name: student.name,
-    email: student.email,
-    department: student.department,
-    semester: student.semester,
-  })
+  const [form, setForm] = useState({ name: student.name, email: student.email })
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
 
@@ -37,8 +30,6 @@ function EditProfileForm({ student, onSubmit, onCancel }) {
     } else if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) {
       next.email = 'Enter a valid email.'
     }
-    if (!form.department) next.department = 'Select a department.'
-    if (!SEMESTERS.includes(form.semester)) next.semester = 'Select a semester.'
     return next
   }
 
@@ -47,7 +38,7 @@ function EditProfileForm({ student, onSubmit, onCancel }) {
     const nextErrors = validate()
     if (Object.values(nextErrors).some(Boolean)) { setErrors(nextErrors); return }
     setLoading(true)
-    await onSubmit({ name: form.name.trim(), email: form.email.trim(), department: form.department, semester: form.semester })
+    await onSubmit({ name: form.name.trim(), email: form.email.trim() })
     setLoading(false)
   }
 
@@ -60,35 +51,13 @@ function EditProfileForm({ student, onSubmit, onCancel }) {
             onChange={handleChange} aria-invalid={Boolean(errors.name)} />
           {errors.name && <p className="field-error">{errors.name}</p>}
         </div>
-
         <div className="form-group">
           <label htmlFor="edit-email">Email</label>
           <input id="edit-email" name="email" type="email" value={form.email}
             onChange={handleChange} aria-invalid={Boolean(errors.email)} />
           {errors.email && <p className="field-error">{errors.email}</p>}
         </div>
-
-        <div className="form-group">
-          <label htmlFor="edit-department">Department</label>
-          <select id="edit-department" name="department" value={form.department}
-            onChange={handleChange} aria-invalid={Boolean(errors.department)}>
-            <option value="">Select department</option>
-            {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
-          </select>
-          {errors.department && <p className="field-error">{errors.department}</p>}
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="edit-semester">Semester</label>
-          <select id="edit-semester" name="semester" value={form.semester}
-            onChange={handleChange} aria-invalid={Boolean(errors.semester)}>
-            <option value="">Select semester</option>
-            {SEMESTERS.map((s) => <option key={s} value={s}>Semester {s}</option>)}
-          </select>
-          {errors.semester && <p className="field-error">{errors.semester}</p>}
-        </div>
       </div>
-
       <div className="form-actions">
         <button type="submit" className="btn btn-primary" disabled={loading}>
           {loading ? 'Saving…' : 'Save Changes'}
@@ -151,7 +120,6 @@ function ChangePasswordForm({ onSubmit, onCancel }) {
             aria-invalid={Boolean(errors.current)} />
           {errors.current && <p className="field-error">{errors.current}</p>}
         </div>
-
         <div className="form-group">
           <label htmlFor="pwd-next">New Password</label>
           <input id="pwd-next" name="next" type="password" value={form.next}
@@ -159,7 +127,6 @@ function ChangePasswordForm({ onSubmit, onCancel }) {
             autoComplete="new-password" aria-invalid={Boolean(errors.next)} />
           {errors.next && <p className="field-error">{errors.next}</p>}
         </div>
-
         <div className="form-group">
           <label htmlFor="pwd-confirm">Confirm New Password</label>
           <input id="pwd-confirm" name="confirm" type="password" value={form.confirm}
@@ -168,9 +135,7 @@ function ChangePasswordForm({ onSubmit, onCancel }) {
           {errors.confirm && <p className="field-error">{errors.confirm}</p>}
         </div>
       </div>
-
       {errors.server && <p className="auth-error" role="alert">{errors.server}</p>}
-
       <div className="form-actions">
         <button type="submit" className="btn btn-primary" disabled={loading}>
           {loading ? 'Updating…' : 'Update Password'}
@@ -181,27 +146,33 @@ function ChangePasswordForm({ onSubmit, onCancel }) {
   )
 }
 
-// ── Credit Meter ──────────────────────────────────────────
-function CreditMeter({ used, limit }) {
-  const percent = Math.min((used / limit) * 100, 100)
-  const remaining = limit - used
-  const isOver = remaining <= 0
-  const isWarn = !isOver && percent >= 75
-
+// ── Catalog Course Row ────────────────────────────────────
+function CatalogCourseRow({ course, enrolled, onEnroll, disabled }) {
+  const typeLabel = {
+    core: 'Core', aptitude: 'Aptitude', project: 'Project',
+    elective_a: 'Elective A', elective_b: 'Elective B',
+  }
   return (
-    <div className="credit-meter">
-      <div className="credit-meter-labels">
-        <span className="credit-meter-used">{used} / {limit} credits used</span>
-        <span className={isOver ? 'credit-text-danger' : isWarn ? 'credit-text-warning' : 'credit-text-safe'}>
-          {isOver ? '🚫 Limit reached' : `${remaining} remaining`}
-        </span>
+    <div className={`catalog-row${enrolled ? ' catalog-row-enrolled' : ''}${disabled ? ' catalog-row-disabled' : ''}`}>
+      <div className="catalog-row-info">
+        <span className="course-code-badge">{course.courseCode}</span>
+        <div className="catalog-row-text">
+          <p className="catalog-course-name">{course.courseName}</p>
+          <p className="catalog-course-meta">
+            {course.facultyName} · {course.credits} credit{course.credits !== 1 ? 's' : ''}
+            {' · '}<span className="catalog-type-tag">{typeLabel[course.type] || course.type}</span>
+          </p>
+        </div>
       </div>
-      <div className="credit-bar">
-        <div
-          className={`credit-bar-fill ${isOver ? 'credit-bar-full' : isWarn ? 'credit-bar-warn' : ''}`}
-          style={{ width: `${percent}%` }}
-        />
-      </div>
+      <button
+        type="button"
+        className={`btn ${enrolled ? 'btn-enrolled' : 'btn-enroll'}`}
+        onClick={() => !enrolled && !disabled && onEnroll(course)}
+        disabled={enrolled || disabled}
+        title={disabled ? 'You already enrolled in one elective from this pool.' : ''}
+      >
+        {enrolled ? '✅ Enrolled' : disabled ? 'Unavailable' : 'Enroll'}
+      </button>
     </div>
   )
 }
@@ -210,133 +181,111 @@ function CreditMeter({ used, limit }) {
 function StudentDashboard() {
   const session = loadSession()
   const toast = useToast()
+
   const [student, setStudent] = useState(null)
-  const [courses, setCourses] = useState([])
-  const [course, setCourse] = useState(initialCourse)
-  const [editingCourseId, setEditingCourseId] = useState(null)
-  const [courseError, setCourseError] = useState('')
-  const [profileMode, setProfileMode] = useState('view') // 'view' | 'edit' | 'password'
+  const [enrollments, setEnrollments] = useState([])
+  const [profileMode, setProfileMode] = useState('view')
+
+  // Term selection
+  const [department, setDepartment] = useState('')
+  const [semester, setSemester] = useState('')
+  const [catalogCourses, setCatalogCourses] = useState([])
+  const [termLoaded, setTermLoaded] = useState(false)
 
   useEffect(() => {
     getStudentById(session.studentId)
-      .then((s) => { setStudent(s); return getCourses(s.id) })
-      .then(setCourses)
+      .then((s) => {
+        setStudent(s)
+        // Pre-populate dropdowns from saved profile
+        if (s.department) setDepartment(s.department)
+        if (s.semester) setSemester(s.semester)
+        return getCourses(s.id)
+      })
+      .then(setEnrollments)
       .catch((err) => toast(err.message, 'error'))
   }, [session.studentId])
 
-  const totalCredits = courses.reduce((sum, c) => sum + Number(c.credits), 0)
-  const creditsRemaining = CREDIT_LIMIT - totalCredits
-
-  // ── Course handlers ──
-  const handleCourseSubmit = async (courseData) => {
-    const newCredits = Number(courseData.credits)
-
-    // Credit limit check
-    if (editingCourseId) {
-      const prev = courses.find((c) => c.id === editingCourseId)
-      const creditDiff = newCredits - Number(prev?.credits ?? 0)
-      if (totalCredits + creditDiff > CREDIT_LIMIT) {
-        setCourseError(`Exceeds the ${CREDIT_LIMIT}-credit limit. You can increase by at most ${CREDIT_LIMIT - totalCredits + Number(prev?.credits ?? 0)} credits.`)
-        return
-      }
-    } else {
-      if (totalCredits + newCredits > CREDIT_LIMIT) {
-        setCourseError(`Exceeds the ${CREDIT_LIMIT}-credit limit. You have ${creditsRemaining} credits remaining.`)
-        return
-      }
+  // Auto-load catalog if student already has a saved term
+  useEffect(() => {
+    if (department && semester && student && !termLoaded) {
+      getCatalog(department, semester).then((courses) => {
+        setCatalogCourses(courses)
+        setTermLoaded(true)
+      })
     }
+  }, [department, semester, student])
 
-    const duplicate = courses.find(
-      (c) => c.courseCode.toLowerCase() === courseData.courseCode.toLowerCase() && c.id !== editingCourseId
-    )
-    if (duplicate) { setCourseError('A course with this code is already registered.'); return }
-
+  const handleLoadTerm = async () => {
+    if (!department || !semester) return
+    // Save term to student profile
     try {
-      if (editingCourseId) {
-        const saved = await updateCourse(editingCourseId, courseData)
-        setCourses((prev) => prev.map((c) => (c.id === editingCourseId ? saved : c)))
-        setEditingCourseId(null)
-        setCourse(initialCourse)
-        toast('Course updated successfully.')
-      } else {
-        const saved = await createCourse({ ...courseData, studentId: session.studentId })
-        setCourses((prev) => [...prev, saved])
-        setCourse(initialCourse)
-        toast('Course registered successfully.')
-      }
-      setCourseError('')
+      const updated = await updateStudent(session.studentId, { department, semester })
+      setStudent(updated)
+    } catch { /* non-critical */ }
+    const courses = await getCatalog(department, semester)
+    setCatalogCourses(courses)
+    setTermLoaded(true)
+  }
+
+  // ── Enrollment helpers ──
+  const isEnrolled = (catalogId) => enrollments.some((e) => e.catalogId === catalogId)
+  const enrolledElectiveA = enrollments.find((e) => e.type === 'elective_a')
+  const enrolledElectiveB = enrollments.find((e) => e.type === 'elective_b')
+
+  const handleEnroll = async (catalogCourse) => {
+    if (isEnrolled(catalogCourse.id)) return
+    try {
+      const saved = await createCourse({
+        courseCode: catalogCourse.courseCode,
+        courseName: catalogCourse.courseName,
+        facultyName: catalogCourse.facultyName,
+        credits: catalogCourse.credits,
+        studentId: session.studentId,
+        catalogId: catalogCourse.id,
+        type: catalogCourse.type,
+      })
+      setEnrollments((prev) => [...prev, saved])
+      toast(`Enrolled in "${catalogCourse.courseName}"!`)
     } catch (err) {
-      setCourseError(err.message)
+      toast(err.message, 'error')
     }
   }
 
-  const handleEditCourse = (c) => {
-    setCourse({ courseCode: c.courseCode, courseName: c.courseName, facultyName: c.facultyName, credits: c.credits })
-    setEditingCourseId(c.id)
-    setCourseError('')
-  }
-
-  const handleCancelCourse = () => {
-    setCourse(initialCourse)
-    setEditingCourseId(null)
-    setCourseError('')
-  }
-
-  const handleDeleteCourse = async (courseId) => {
-    if (!window.confirm('Delete this course?')) return
+  const handleUnenroll = async (courseId) => {
+    if (!window.confirm('Unenroll from this course?')) return
     try {
       await deleteCourse(courseId)
-      setCourses((prev) => prev.filter((c) => c.id !== courseId))
-      toast('Course deleted.')
-      if (editingCourseId === courseId) handleCancelCourse()
+      setEnrollments((prev) => prev.filter((e) => e.id !== courseId))
+      toast('Unenrolled successfully.')
     } catch (err) {
       toast(err.message, 'error')
     }
   }
 
-  // ── Profile handlers ──
-  const handleProfileSave = async (data) => {
-    try {
-      const updated = await updateStudent(session.studentId, data)
-      setStudent(updated)
-      setProfileMode('view')
-      toast('Profile updated successfully.')
-    } catch (err) {
-      toast(err.message, 'error')
-    }
-  }
+  // ── Catalog sections ──
+  const mandatory = catalogCourses.filter((c) => ['core', 'aptitude', 'project'].includes(c.type))
+  const electivesA = catalogCourses.filter((c) => c.type === 'elective_a')
+  const electivesB = catalogCourses.filter((c) => c.type === 'elective_b')
 
-  const handlePasswordSave = async (currentPassword, newPassword) => {
-    await changePassword(session.studentId, currentPassword, newPassword)
-    setProfileMode('view')
-    toast('Password changed successfully.')
-  }
+  const totalCredits = enrollments.reduce((sum, e) => sum + Number(e.credits), 0)
 
   if (!student) return <div className="section empty-state"><p>Loading…</p></div>
 
-  const creditsUsed = totalCredits
-  const creditsLeft = CREDIT_LIMIT - creditsUsed
-
   return (
     <>
-
       {/* ── Profile section ── */}
       <section className="section student-summary">
         <div className="profile-header">
           <h2>My Profile</h2>
           <div className="profile-actions">
-            <button
-              type="button"
+            <button type="button"
               className={`btn ${profileMode === 'edit' ? 'btn-secondary' : 'btn-edit'}`}
-              onClick={() => setProfileMode(profileMode === 'edit' ? 'view' : 'edit')}
-            >
+              onClick={() => setProfileMode(profileMode === 'edit' ? 'view' : 'edit')}>
               {profileMode === 'edit' ? '✕ Cancel' : '✏ Edit Profile'}
             </button>
-            <button
-              type="button"
+            <button type="button"
               className={`btn ${profileMode === 'password' ? 'btn-secondary' : 'btn-edit'}`}
-              onClick={() => setProfileMode(profileMode === 'password' ? 'view' : 'password')}
-            >
+              onClick={() => setProfileMode(profileMode === 'password' ? 'view' : 'password')}>
               {profileMode === 'password' ? '✕ Cancel' : '🔑 Change Password'}
             </button>
           </div>
@@ -344,25 +293,43 @@ function StudentDashboard() {
 
         {profileMode === 'view' && (
           <div className="summary-card">
+            <div className="summary-row">
+              <span className="label">PRN</span>
+              <span className="value">
+                <span className="prn-inline">{student.prn}</span>
+              </span>
+            </div>
             <div className="summary-row"><span className="label">Name</span><span className="value">{student.name}</span></div>
-            <div className="summary-row"><span className="label">Roll Number</span><span className="value">{student.rollNumber}</span></div>
-            <div className="summary-row"><span className="label">Department</span><span className="value">{student.department}</span></div>
-            <div className="summary-row"><span className="label">Semester</span><span className="value">Semester {student.semester}</span></div>
             <div className="summary-row"><span className="label">Email</span><span className="value">{student.email}</span></div>
+            {student.department && <div className="summary-row"><span className="label">Branch</span><span className="value">{student.department}</span></div>}
+            {student.semester && <div className="summary-row"><span className="label">Semester</span><span className="value">Semester {student.semester}</span></div>}
           </div>
         )}
 
         {profileMode === 'edit' && (
           <EditProfileForm
             student={student}
-            onSubmit={handleProfileSave}
+            onSubmit={async (data) => {
+              try {
+                const updated = await updateStudent(session.studentId, data)
+                setStudent(updated)
+                setProfileMode('view')
+                toast('Profile updated successfully.')
+              } catch (err) {
+                toast(err.message, 'error')
+              }
+            }}
             onCancel={() => setProfileMode('view')}
           />
         )}
 
         {profileMode === 'password' && (
           <ChangePasswordForm
-            onSubmit={handlePasswordSave}
+            onSubmit={async (currentPassword, newPassword) => {
+              await changePassword(session.studentId, currentPassword, newPassword)
+              setProfileMode('view')
+              toast('Password changed successfully.')
+            }}
             onCancel={() => setProfileMode('view')}
           />
         )}
@@ -375,71 +342,142 @@ function StudentDashboard() {
           <div className="stat-card">
             <span className="stat-icon">📚</span>
             <div>
-              <p className="stat-value">{courses.length}</p>
-              <p className="stat-label">Courses Registered</p>
+              <p className="stat-value">{enrollments.length}</p>
+              <p className="stat-label">Enrolled Courses</p>
             </div>
           </div>
           <div className="stat-card">
             <span className="stat-icon">⚡</span>
             <div>
-              <p className="stat-value">{creditsUsed}</p>
-              <p className="stat-label">Credits Used</p>
-            </div>
-          </div>
-          <div className={`stat-card ${creditsLeft <= 0 ? 'stat-card-danger' : creditsLeft <= 6 ? 'stat-card-warn' : 'stat-card-safe'}`}>
-            <span className="stat-icon">{creditsLeft <= 0 ? '🚫' : '✅'}</span>
-            <div>
-              <p className="stat-value">{Math.max(creditsLeft, 0)}</p>
-              <p className="stat-label">Credits Remaining</p>
+              <p className="stat-value">{totalCredits}</p>
+              <p className="stat-label">Total Credits</p>
             </div>
           </div>
           <div className="stat-card">
             <span className="stat-icon">🎓</span>
             <div>
-              <p className="stat-value">Sem {student.semester}</p>
-              <p className="stat-label">{student.department}</p>
+              <p className="stat-value">{student.semester ? `Sem ${student.semester}` : '—'}</p>
+              <p className="stat-label">{student.department || 'No branch set'}</p>
+            </div>
+          </div>
+          <div className="stat-card">
+            <span className="stat-icon">🪪</span>
+            <div>
+              <p className="stat-value" style={{ fontSize: '1.1rem' }}>{student.prn}</p>
+              <p className="stat-label">Your PRN</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── Course registration section ── */}
+      {/* ── Course Enrollment section ── */}
       <section className="section">
-        <div className="section-title-row">
-          <h2>{editingCourseId ? 'Edit Course' : 'Register a Course'}</h2>
+        <h2>Course Enrollment</h2>
+        <p className="section-desc">Select your branch and semester to view available courses and enroll.</p>
+
+        <div className="term-selector">
+          <div className="term-select-group">
+            <label htmlFor="select-dept">Branch</label>
+            <select
+              id="select-dept"
+              value={department}
+              onChange={(e) => { setDepartment(e.target.value); setTermLoaded(false) }}
+            >
+              <option value="">Select branch</option>
+              {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </div>
+          <div className="term-select-group">
+            <label htmlFor="select-sem">Semester</label>
+            <select
+              id="select-sem"
+              value={semester}
+              onChange={(e) => { setSemester(e.target.value); setTermLoaded(false) }}
+            >
+              <option value="">Select semester</option>
+              {SEMESTERS.map((s) => <option key={s} value={s}>Semester {s}</option>)}
+            </select>
+          </div>
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={!department || !semester}
+            onClick={handleLoadTerm}
+          >
+            Load Courses
+          </button>
         </div>
 
-        <CreditMeter used={totalCredits} limit={CREDIT_LIMIT} />
+        {termLoaded && catalogCourses.length > 0 && (
+          <div className="catalog-panel">
+            {/* Mandatory */}
+            <div className="catalog-section">
+              <div className="catalog-section-header">
+                <h3>📌 Mandatory Courses</h3>
+                <span className="catalog-section-badge">{mandatory.length} courses</span>
+              </div>
+              <p className="section-desc">You must enroll in all of the following courses.</p>
+              {mandatory.map((course) => (
+                <CatalogCourseRow
+                  key={course.id}
+                  course={course}
+                  enrolled={isEnrolled(course.id)}
+                  onEnroll={handleEnroll}
+                  disabled={false}
+                />
+              ))}
+            </div>
 
-        {creditsRemaining <= 0 && !editingCourseId ? (
-          <p className="credit-limit-msg">
-            🚫 You have reached the <strong>{CREDIT_LIMIT}-credit</strong> limit. Delete a course to register a new one.
-          </p>
-        ) : (
-          <>
-            <p className="section-desc" style={{ marginTop: '1rem' }}>
-              {editingCourseId ? 'Update the course details below.' : 'Add a new course to your semester.'}
-            </p>
-            <CourseForm
-              course={course}
-              error={courseError}
-              isEditing={Boolean(editingCourseId)}
-              setCourse={setCourse}
-              onCancel={handleCancelCourse}
-              onSubmit={handleCourseSubmit}
-            />
-          </>
+            {/* Elective A */}
+            <div className="catalog-section">
+              <div className="catalog-section-header">
+                <h3>🌐 Elective A — Trending Topics</h3>
+                <span className={`catalog-section-badge ${enrolledElectiveA ? 'badge-done' : ''}`}>
+                  {enrolledElectiveA ? '✓ Done' : 'Choose 1 of 5'}
+                </span>
+              </div>
+              <p className="section-desc">Select <strong>one</strong> course from the list below.</p>
+              {electivesA.map((course) => (
+                <CatalogCourseRow
+                  key={course.id}
+                  course={course}
+                  enrolled={isEnrolled(course.id)}
+                  onEnroll={handleEnroll}
+                  disabled={Boolean(enrolledElectiveA) && !isEnrolled(course.id)}
+                />
+              ))}
+            </div>
+
+            {/* Elective B */}
+            <div className="catalog-section">
+              <div className="catalog-section-header">
+                <h3>🎨 Elective B — Open / Extra-Curricular</h3>
+                <span className={`catalog-section-badge ${enrolledElectiveB ? 'badge-done' : ''}`}>
+                  {enrolledElectiveB ? '✓ Done' : 'Choose 1 of 5'}
+                </span>
+              </div>
+              <p className="section-desc">Select <strong>one</strong> course from the list below.</p>
+              {electivesB.map((course) => (
+                <CatalogCourseRow
+                  key={course.id}
+                  course={course}
+                  enrolled={isEnrolled(course.id)}
+                  onEnroll={handleEnroll}
+                  disabled={Boolean(enrolledElectiveB) && !isEnrolled(course.id)}
+                />
+              ))}
+            </div>
+          </div>
         )}
       </section>
 
-      {/* ── Course list section ── */}
+      {/* ── Enrolled courses ── */}
       <section className="section">
-        <h2>My Courses</h2>
-        <p className="section-desc">All courses registered for this semester.</p>
+        <h2>My Enrolled Courses</h2>
+        <p className="section-desc">All courses you are currently enrolled in this semester.</p>
         <CourseList
-          courses={courses}
-          onDelete={handleDeleteCourse}
-          onEdit={handleEditCourse}
+          courses={enrollments}
+          onDelete={handleUnenroll}
           studentName={student.name}
         />
       </section>

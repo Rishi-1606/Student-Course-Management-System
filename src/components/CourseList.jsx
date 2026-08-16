@@ -121,7 +121,7 @@ function CourseList({ courses, onDelete, onEdit, studentName }) {
               >
                 Credits <SortArrow column="credits" sortKey={sortKey} direction={sortDir} />
               </th>
-              {onEdit && <th>Actions</th>}
+              {(onEdit || onDelete) && <th>Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -132,15 +132,19 @@ function CourseList({ courses, onDelete, onEdit, studentName }) {
                 <td>{course.courseName}</td>
                 <td>{course.facultyName}</td>
                 <td><strong>{course.credits}</strong></td>
-                {onEdit && (
+                {(onEdit || onDelete) && (
                   <td>
                     <div className="course-actions">
-                      <button type="button" className="btn btn-edit" onClick={() => onEdit(course)}>
-                        Edit
-                      </button>
-                      <button type="button" className="btn btn-delete" onClick={() => onDelete(course.id)}>
-                        Delete
-                      </button>
+                      {onEdit && (
+                        <button type="button" className="btn btn-edit" onClick={() => onEdit(course)}>
+                          Edit
+                        </button>
+                      )}
+                      {onDelete && (
+                        <button type="button" className="btn btn-delete" onClick={() => onDelete(course.id)}>
+                          {onEdit ? 'Delete' : 'Unenroll'}
+                        </button>
+                      )}
                     </div>
                   </td>
                 )}
