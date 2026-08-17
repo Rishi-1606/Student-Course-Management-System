@@ -1216,3 +1216,55 @@
   color: #475569;
   white-space: nowrap;
 }
+
+/* -- Registration Closed Banner ----------------------------- */
+.reg-closed-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: #fef2f2;
+  border: 1.5px solid #fca5a5;
+  border-radius: 12px;
+  margin-bottom: 1.25rem;
+}
+
+.reg-closed-icon {
+  font-size: 1.6rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.reg-closed-title {
+  font-weight: 700;
+  color: #b91c1c;
+  margin: 0 0 0.25rem;
+  font-size: 0.95rem;
+}
+
+.reg-closed-sub {
+  font-size: 0.83rem;
+  color: #7f1d1d;
+  margin: 0;
+}
+
+/* -- Seats Remaining Badge ---------------------------------- */
+.seats-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.seats-ok   { background: #dcfce7; color: #15803d; }
+.seats-low  { background: #fef9c3; color: #854d0e; }
+.seats-full { background: #fee2e2; color: #b91c1c; }
+
+/* -- Disabled enroll button --------------------------------- */
+.btn-enroll-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #94a3b8 !important;
+}

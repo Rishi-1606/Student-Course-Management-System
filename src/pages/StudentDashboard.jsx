@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { loadSession } from '../utils/localStorage'
 import {
   getStudentById, getCourses, createCourse, deleteCourse,
-  updateStudent, changePassword, getCatalog,
+  updateStudent, changePassword, getCatalog, getSettings, getEnrollmentCounts,
 } from '../utils/api'
 import CourseList from '../components/CourseList'
 import { useToast } from '../components/Toast'
@@ -147,31 +147,51 @@ function ChangePasswordForm({ onSubmit, onCancel }) {
 }
 
 // ── Catalog Course Row ────────────────────────────────────
-function CatalogCourseRow({ course, enrolled, onEnroll, disabled }) {
+function CatalogCourseRow({ course, enrolled, onEnroll, disabled, seatsLeft, regClosed }) {
   const typeLabel = {
     core: 'Core', aptitude: 'Aptitude', project: 'Project',
     elective_a: 'Elective A', elective_b: 'Elective B',
   }
+  const isElective = course.type === 'elective_a' || course.type === 'elective_b'
+  const isFull = isElective && seatsLeft != null && seatsLeft <= 0
+  const isDisabled = enrolled || disabled || isFull || regClosed
+
+  let btnLabel = 'Enroll'
+  if (enrolled)   btnLabel = '\u2705 Enrolled'
+  else if (regClosed) btnLabel = 'Closed'
+  else if (isFull)    btnLabel = 'Full'
+  else if (disabled)  btnLabel = 'Unavailable'
+
+  let btnTitle = ''
+  if (regClosed)   btnTitle = 'Registration is currently closed.'
+  else if (isFull) btnTitle = 'No seats remaining for this elective.'
+  else if (disabled) btnTitle = 'You already enrolled in one elective from this pool.'
+
   return (
-    <div className={`catalog-row${enrolled ? ' catalog-row-enrolled' : ''}${disabled ? ' catalog-row-disabled' : ''}`}>
+    <div className={`catalog-row${enrolled ? ' catalog-row-enrolled' : ''}${isDisabled && !enrolled ? ' catalog-row-disabled' : ''}`}>
       <div className="catalog-row-info">
         <span className="course-code-badge">{course.courseCode}</span>
         <div className="catalog-row-text">
           <p className="catalog-course-name">{course.courseName}</p>
           <p className="catalog-course-meta">
-            {course.facultyName} · {course.credits} credit{course.credits !== 1 ? 's' : ''}
-            {' · '}<span className="catalog-type-tag">{typeLabel[course.type] || course.type}</span>
+            {course.facultyName} &middot; {course.credits} credit{course.credits !== 1 ? 's' : ''}
+            {' \u00b7 '}<span className="catalog-type-tag">{typeLabel[course.type] || course.type}</span>
+            {isElective && !enrolled && seatsLeft != null && (
+              <span className={`seats-badge ${isFull ? 'seats-full' : seatsLeft <= 10 ? 'seats-low' : 'seats-ok'}`}>
+                {isFull ? 'No seats left' : `${seatsLeft} seat${seatsLeft !== 1 ? 's' : ''} left`}
+              </span>
+            )}
           </p>
         </div>
       </div>
       <button
         type="button"
-        className={`btn ${enrolled ? 'btn-enrolled' : 'btn-enroll'}`}
-        onClick={() => !enrolled && !disabled && onEnroll(course)}
-        disabled={enrolled || disabled}
-        title={disabled ? 'You already enrolled in one elective from this pool.' : ''}
+        className={`btn ${enrolled ? 'btn-enrolled' : isDisabled ? 'btn-enroll btn-enroll-disabled' : 'btn-enroll'}`}
+        onClick={() => !isDisabled && onEnroll(course)}
+        disabled={isDisabled}
+        title={btnTitle}
       >
-        {enrolled ? '✅ Enrolled' : disabled ? 'Unavailable' : 'Enroll'}
+        {btnLabel}
       </button>
     </div>
   )
@@ -185,24 +205,27 @@ function StudentDashboard() {
   const [student, setStudent] = useState(null)
   const [enrollments, setEnrollments] = useState([])
   const [profileMode, setProfileMode] = useState('view')
+  const [settings, setSettings] = useState(null)
 
   // Term selection
   const [department, setDepartment] = useState('')
   const [semester, setSemester] = useState('')
   const [catalogCourses, setCatalogCourses] = useState([])
   const [termLoaded, setTermLoaded] = useState(false)
+  const [seatCounts, setSeatCounts] = useState({}) // { catalogId: seatsLeft }
 
   useEffect(() => {
     getStudentById(session.studentId)
       .then((s) => {
         setStudent(s)
-        // Pre-populate dropdowns from saved profile
         if (s.department) setDepartment(s.department)
         if (s.semester) setSemester(s.semester)
         return getCourses(s.id)
       })
       .then(setEnrollments)
       .catch((err) => toast(err.message, 'error'))
+    // Load system settings
+    getSettings().then(setSettings)
   }, [session.studentId])
 
   // Auto-load catalog if student already has a saved term
@@ -214,6 +237,18 @@ function StudentDashboard() {
       })
     }
   }, [department, semester, student])
+
+  // Refresh seat counts whenever catalog or enrollments change
+  useEffect(() => {
+    if (!department || !semester || catalogCourses.length === 0) return
+    getEnrollmentCounts(department, semester).then((counts) => {
+      const seats = {}
+      catalogCourses.forEach((c) => {
+        if (c.capacity != null) seats[c.id] = c.capacity - (counts[c.id] || 0)
+      })
+      setSeatCounts(seats)
+    })
+  }, [catalogCourses, enrollments])
 
   const handleLoadTerm = async () => {
     if (!department || !semester) return
@@ -231,6 +266,7 @@ function StudentDashboard() {
   const isEnrolled = (catalogId) => enrollments.some((e) => e.catalogId === catalogId)
   const enrolledElectiveA = enrollments.find((e) => e.type === 'elective_a')
   const enrolledElectiveB = enrollments.find((e) => e.type === 'elective_b')
+  const regClosed = settings ? !settings.registrationOpen : false
 
   const handleEnroll = async (catalogCourse) => {
     if (isEnrolled(catalogCourse.id)) return
@@ -281,12 +317,12 @@ function StudentDashboard() {
             <button type="button"
               className={`btn ${profileMode === 'edit' ? 'btn-secondary' : 'btn-edit'}`}
               onClick={() => setProfileMode(profileMode === 'edit' ? 'view' : 'edit')}>
-              {profileMode === 'edit' ? '✕ Cancel' : '✏ Edit Profile'}
+              {profileMode === 'edit' ? '\u2715 Cancel' : '\u270f Edit Profile'}
             </button>
             <button type="button"
               className={`btn ${profileMode === 'password' ? 'btn-secondary' : 'btn-edit'}`}
               onClick={() => setProfileMode(profileMode === 'password' ? 'view' : 'password')}>
-              {profileMode === 'password' ? '✕ Cancel' : '🔑 Change Password'}
+              {profileMode === 'password' ? '\u2715 Cancel' : '\ud83d\udd11 Change Password'}
             </button>
           </div>
         </div>
@@ -295,9 +331,7 @@ function StudentDashboard() {
           <div className="summary-card">
             <div className="summary-row">
               <span className="label">PRN</span>
-              <span className="value">
-                <span className="prn-inline">{student.prn}</span>
-              </span>
+              <span className="value"><span className="prn-inline">{student.prn}</span></span>
             </div>
             <div className="summary-row"><span className="label">Name</span><span className="value">{student.name}</span></div>
             <div className="summary-row"><span className="label">Email</span><span className="value">{student.email}</span></div>
@@ -356,12 +390,12 @@ function StudentDashboard() {
           <div className="stat-card">
             <span className="stat-icon">🎓</span>
             <div>
-              <p className="stat-value">{student.semester ? `Sem ${student.semester}` : '—'}</p>
+              <p className="stat-value">{student.semester ? `Sem ${student.semester}` : '\u2014'}</p>
               <p className="stat-label">{student.department || 'No branch set'}</p>
             </div>
           </div>
           <div className="stat-card">
-            <span className="stat-icon">🪪</span>
+            <span className="stat-icon">🪩</span>
             <div>
               <p className="stat-value" style={{ fontSize: '1.1rem' }}>{student.prn}</p>
               <p className="stat-label">Your PRN</p>
@@ -374,6 +408,22 @@ function StudentDashboard() {
       <section className="section">
         <h2>Course Enrollment</h2>
         <p className="section-desc">Select your branch and semester to view available courses and enroll.</p>
+
+        {/* Registration closed banner */}
+        {regClosed && (
+          <div className="reg-closed-banner" role="alert">
+            <span className="reg-closed-icon">🔒</span>
+            <div>
+              <p className="reg-closed-title">Registration is currently closed</p>
+              <p className="reg-closed-sub">
+                The admin has closed course registration.
+                {settings?.registrationStart && settings?.registrationEnd
+                  ? ` Next window: ${settings.registrationStart} – ${settings.registrationEnd}.`
+                  : ' Please check back later or contact your admin.'}
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="term-selector">
           <div className="term-select-group">
@@ -402,7 +452,16 @@ function StudentDashboard() {
             type="button"
             className="btn btn-primary"
             disabled={!department || !semester}
-            onClick={handleLoadTerm}
+            onClick={async () => {
+              if (!department || !semester) return
+              try {
+                const updated = await updateStudent(session.studentId, { department, semester })
+                setStudent(updated)
+              } catch { /* non-critical */ }
+              const courses = await getCatalog(department, semester)
+              setCatalogCourses(courses)
+              setTermLoaded(true)
+            }}
           >
             Load Courses
           </button>
@@ -424,6 +483,7 @@ function StudentDashboard() {
                   enrolled={isEnrolled(course.id)}
                   onEnroll={handleEnroll}
                   disabled={false}
+                  regClosed={regClosed}
                 />
               ))}
             </div>
@@ -433,7 +493,7 @@ function StudentDashboard() {
               <div className="catalog-section-header">
                 <h3>🌐 Elective A — Trending Topics</h3>
                 <span className={`catalog-section-badge ${enrolledElectiveA ? 'badge-done' : ''}`}>
-                  {enrolledElectiveA ? '✓ Done' : 'Choose 1 of 5'}
+                  {enrolledElectiveA ? '\u2713 Done' : 'Choose 1 of 5'}
                 </span>
               </div>
               <p className="section-desc">Select <strong>one</strong> course from the list below.</p>
@@ -444,6 +504,8 @@ function StudentDashboard() {
                   enrolled={isEnrolled(course.id)}
                   onEnroll={handleEnroll}
                   disabled={Boolean(enrolledElectiveA) && !isEnrolled(course.id)}
+                  seatsLeft={seatCounts[course.id]}
+                  regClosed={regClosed}
                 />
               ))}
             </div>
@@ -453,7 +515,7 @@ function StudentDashboard() {
               <div className="catalog-section-header">
                 <h3>🎨 Elective B — Open / Extra-Curricular</h3>
                 <span className={`catalog-section-badge ${enrolledElectiveB ? 'badge-done' : ''}`}>
-                  {enrolledElectiveB ? '✓ Done' : 'Choose 1 of 5'}
+                  {enrolledElectiveB ? '\u2713 Done' : 'Choose 1 of 5'}
                 </span>
               </div>
               <p className="section-desc">Select <strong>one</strong> course from the list below.</p>
@@ -464,6 +526,8 @@ function StudentDashboard() {
                   enrolled={isEnrolled(course.id)}
                   onEnroll={handleEnroll}
                   disabled={Boolean(enrolledElectiveB) && !isEnrolled(course.id)}
+                  seatsLeft={seatCounts[course.id]}
+                  regClosed={regClosed}
                 />
               ))}
             </div>
@@ -479,6 +543,7 @@ function StudentDashboard() {
           courses={enrollments}
           onDelete={handleUnenroll}
           studentName={student.name}
+          showYear
         />
       </section>
     </>

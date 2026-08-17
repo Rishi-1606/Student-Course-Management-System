@@ -27,7 +27,7 @@ function SortArrow({ column, sortKey, direction }) {
 }
 
 // ── CourseList ─────────────────────────────────────────────
-function CourseList({ courses, onDelete, onEdit, studentName }) {
+function CourseList({ courses, onDelete, onEdit, studentName, showYear = false }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [sortKey, setSortKey] = useState(null)      // null | 'courseCode' | 'courseName' | 'credits'
   const [sortDir, setSortDir] = useState('asc')
@@ -121,6 +121,7 @@ function CourseList({ courses, onDelete, onEdit, studentName }) {
               >
                 Credits <SortArrow column="credits" sortKey={sortKey} direction={sortDir} />
               </th>
+              {showYear && <th>Acad. Year</th>}
               {(onEdit || onDelete) && <th>Actions</th>}
             </tr>
           </thead>
@@ -132,6 +133,13 @@ function CourseList({ courses, onDelete, onEdit, studentName }) {
                 <td>{course.courseName}</td>
                 <td>{course.facultyName}</td>
                 <td><strong>{course.credits}</strong></td>
+                {showYear && (
+                  <td>
+                    {course.academicYear
+                      ? <span className="prn-inline" style={{ fontSize: '0.75rem', padding: '0.1rem 0.4rem' }}>{course.academicYear}</span>
+                      : '—'}
+                  </td>
+                )}
                 {(onEdit || onDelete) && (
                   <td>
                     <div className="course-actions">
