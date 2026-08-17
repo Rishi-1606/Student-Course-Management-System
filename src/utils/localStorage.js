@@ -1,7 +1,8 @@
 const STUDENTS_KEY = 'scms.students'
-const COURSES_KEY = 'scms.courses'
-const CATALOG_KEY = 'scms.catalog'
-const SESSION_KEY = 'scms.session'
+const COURSES_KEY  = 'scms.courses'
+const CATALOG_KEY  = 'scms.catalog'
+const SETTINGS_KEY = 'scms.settings'
+const SESSION_KEY  = 'scms.session'
 
 function read(key, fallback, storage = window.localStorage) {
   try {
@@ -44,6 +45,22 @@ export function loadCatalog() {
 
 export function saveCatalog(catalog) {
   write(CATALOG_KEY, catalog)
+}
+
+// ── System Settings ───────────────────────────────────────
+const DEFAULT_SETTINGS = {
+  academicYear: '2024-25',
+  registrationOpen: true,
+  registrationStart: null,
+  registrationEnd: null,
+}
+
+export function loadSettings() {
+  return read(SETTINGS_KEY, DEFAULT_SETTINGS)
+}
+
+export function saveSettings(settings) {
+  write(SETTINGS_KEY, settings)
 }
 
 // ── Session (sessionStorage — clears on tab close) ────────

@@ -1,4 +1,4 @@
-import { loadStudents, saveStudents, loadCourses, saveCourses, loadCatalog, saveCatalog } from './localStorage'
+import { loadStudents, saveStudents, loadCourses, saveCourses, loadCatalog, saveCatalog, loadSettings, saveSettings } from './localStorage'
 
 const ADMIN_USERNAME = 'admin'
 const ADMIN_PASSWORD = 'admin123'
@@ -100,7 +100,8 @@ export function getAllCourses() {
 
 export function createCourse(course) {
   const courses = loadCourses()
-  const newCourse = { ...course, id: nextId(courses) }
+  const settings = loadSettings()
+  const newCourse = { ...course, id: nextId(courses), academicYear: settings.academicYear }
   saveCourses([...courses, newCourse])
   return Promise.resolve(newCourse)
 }
@@ -125,9 +126,22 @@ export function deleteCourse(courseId) {
   return Promise.resolve()
 }
 
+// ── Settings ──────────────────────────────────────────────
+
+export function getSettings() {
+  return Promise.resolve(loadSettings())
+}
+
+export function updateSettings(data) {
+  const current = loadSettings()
+  const updated = { ...current, ...data }
+  saveSettings(updated)
+  return Promise.resolve(updated)
+}
+
 // ── Catalog ───────────────────────────────────────────────
 
-const CATALOG_VERSION = 2 // bump this to force re-seed with new data
+const CATALOG_VERSION = 3 // bumped: added capacity to electives
 
 export function seedCatalog() {
   const existing = loadCatalog()
@@ -297,7 +311,7 @@ export function seedCatalog() {
         semester: sem,
       })
 
-      // 5 Elective A options — semester-specific trending topics
+      // 5 Elective A options — semester-specific trending topics, with seat capacity
       ELECTIVES_A[semIdx].forEach((name, i) => {
         catalog.push({
           id: id++,
@@ -306,12 +320,13 @@ export function seedCatalog() {
           courseName: name,
           facultyName: 'Guest Lecturer',
           credits: 3,
+          capacity: 60,
           department: branch,
           semester: sem,
         })
       })
 
-      // 5 Elective B options — semester-specific open courses
+      // 5 Elective B options — semester-specific open courses, with seat capacity
       ELECTIVES_B[semIdx].forEach((name, i) => {
         catalog.push({
           id: id++,
@@ -320,6 +335,7 @@ export function seedCatalog() {
           courseName: name,
           facultyName: 'Guest Lecturer',
           credits: 2,
+          capacity: 60,
           department: branch,
           semester: sem,
         })
@@ -336,4 +352,42 @@ export function getCatalog(department, semester) {
   const catalog = loadCatalog() || seedCatalog()
   if (!department || !semester) return Promise.resolve(catalog)
   return Promise.resolve(catalog.filter((c) => c.department === department && c.semester === semester))
+}
+
+export function addCatalogCourse(courseData) {
+  const catalog = loadCatalog() || seedCatalog()
+  const newEntry = { ...courseData, id: catalog.length === 0 ? 1 : Math.max(...catalog.map((c) => c.id)) + 1 }
+  saveCatalog([...catalog, newEntry])
+  return Promise.resolve(newEntry)
+}
+
+export function updateCatalogCourse(courseId, courseData) {
+  const catalog = loadCatalog() || seedCatalog()
+  let updated = null
+  const next = catalog.map((c) => {
+    if (c.id === courseId) { updated = { ...c, ...courseData }; return updated }
+    return c
+  })
+  if (!updated) return Promise.reject(new Error('Catalog course not found.'))
+  saveCatalog(next)
+  return Promise.resolve(updated)
+}
+
+export function deleteCatalogCourse(courseId) {
+  const catalog = loadCatalog() || seedCatalog()
+  saveCatalog(catalog.filter((c) => c.id !== courseId))
+  return Promise.resolve()
+}
+
+// Returns { catalogId: enrolledCount } map for a given branch+semester
+export function getEnrollmentCounts(department, semester) {
+  const all = loadCourses()
+  const catalog = (loadCatalog() || seedCatalog()).filter(
+    (c) => c.department === department && c.semester === semester
+  )
+  const counts = {}
+  catalog.forEach((c) => {
+    counts[c.id] = all.filter((e) => e.catalogId === c.id).length
+  })
+  return Promise.resolve(counts)
 }
