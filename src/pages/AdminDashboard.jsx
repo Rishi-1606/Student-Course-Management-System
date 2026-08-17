@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import {
   getStudents, getAllCourses, deleteCourse, deleteStudent,
   getCatalog, addCatalogCourse, updateCatalogCourse, deleteCatalogCourse,
-  getSettings, updateSettings,
+  getSettings, updateSettings, getEnrollmentCounts,
 } from '../utils/api'
 import { useToast } from '../components/Toast'
 
@@ -116,6 +116,13 @@ function AdminDashboard() {
   const [settingsForm, setSettingsForm]     = useState(null)
   const [settingsSaving, setSettingsSaving] = useState(false)
 
+  // Stats tab
+  const [statsDept, setStatsDept]         = useState('Computer Science')
+  const [statsSem, setStatsSem]           = useState('1')
+  const [statsCatalog, setStatsCatalog]   = useState([])
+  const [statsCounts, setStatsCounts]     = useState({})
+  const [statsLoading, setStatsLoading]   = useState(false)
+
   // Load students + all enrollments once
   useEffect(() => {
     Promise.all([getStudents(), getAllCourses()])
@@ -137,6 +144,20 @@ function AdminDashboard() {
     if (activeTab !== 'settings') return
     getSettings().then((s) => setSettingsForm({ ...s }))
   }, [activeTab])
+
+  // Load stats when stats tab opens or filters change
+  useEffect(() => {
+    if (activeTab !== 'stats') return
+    setStatsLoading(true)
+    Promise.all([
+      getCatalog(statsDept, statsSem),
+      getEnrollmentCounts(statsDept, statsSem),
+    ]).then(([catalog, counts]) => {
+      setStatsCatalog(catalog)
+      setStatsCounts(counts)
+      setStatsLoading(false)
+    }).catch(() => setStatsLoading(false))
+  }, [activeTab, statsDept, statsSem])
 
   // ── Student handlers ──
   const coursesFor = (studentId) => allCourses.filter((c) => c.studentId === studentId)
@@ -268,6 +289,10 @@ function AdminDashboard() {
           <button type="button" className={`admin-tab ${activeTab === 'catalog' ? 'admin-tab-active' : ''}`}
             onClick={() => setActiveTab('catalog')}>
             📚 Master Catalog
+          </button>
+          <button type="button" className={`admin-tab ${activeTab === 'stats' ? 'admin-tab-active' : ''}`}
+            onClick={() => setActiveTab('stats')}>
+            📊 Enrollment Stats
           </button>
           <button type="button" className={`admin-tab ${activeTab === 'settings' ? 'admin-tab-active' : ''}`}
             onClick={() => setActiveTab('settings')}>
@@ -462,6 +487,100 @@ function AdminDashboard() {
                   </table>
                 </div>
               </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* ── Stats tab ── */}
+      {activeTab === 'stats' && (
+        <section className="section">
+          <h2>Enrollment Statistics</h2>
+          <p className="section-desc">See how many students are enrolled in each course.</p>
+
+          {/* System-wide counters */}
+          <div className="stats-grid" style={{ marginBottom: '1.5rem' }}>
+            <div className="stat-card">
+              <span className="stat-icon">👥</span>
+              <div><p className="stat-value">{students.length}</p><p className="stat-label">Total Students</p></div>
+            </div>
+            <div className="stat-card">
+              <span className="stat-icon">📋</span>
+              <div><p className="stat-value">{allCourses.length}</p><p className="stat-label">Total Enrollments</p></div>
+            </div>
+            <div className="stat-card">
+              <span className="stat-icon">📈</span>
+              <div>
+                <p className="stat-value">
+                  {students.length > 0 ? (allCourses.length / students.length).toFixed(1) : '0'}
+                </p>
+                <p className="stat-label">Avg Enrollments / Student</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Filter */}
+          <div className="term-selector" style={{ marginBottom: '1rem' }}>
+            <div className="term-select-group">
+              <label htmlFor="stats-dept">Branch</label>
+              <select id="stats-dept" value={statsDept} onChange={(e) => setStatsDept(e.target.value)}>
+                {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+            <div className="term-select-group">
+              <label htmlFor="stats-sem">Semester</label>
+              <select id="stats-sem" value={statsSem} onChange={(e) => setStatsSem(e.target.value)}>
+                {SEMESTERS.map((s) => <option key={s} value={s}>Semester {s}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {statsLoading ? (
+            <p className="section-desc">Loading…</p>
+          ) : (
+            <div className="table-wrapper">
+              <table className="course-table">
+                <thead>
+                  <tr>
+                    <th>Code</th>
+                    <th>Course Name</th>
+                    <th>Type</th>
+                    <th>Enrolled</th>
+                    <th>Capacity</th>
+                    <th>Fill Rate</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {statsCatalog.map((course) => {
+                    const count = statsCounts[course.id] || 0
+                    const cap   = course.capacity
+                    const pct   = cap ? Math.round((count / cap) * 100) : null
+                    const isElective = course.type === 'elective_a' || course.type === 'elective_b'
+                    return (
+                      <tr key={course.id}>
+                        <td><span className="course-code-badge">{course.courseCode}</span></td>
+                        <td>{course.courseName}</td>
+                        <td><span className={`catalog-type-tag ${TYPE_COLOR[course.type] || ''}`}>{TYPE_LABEL[course.type]}</span></td>
+                        <td><strong>{count}</strong></td>
+                        <td>{isElective ? cap : '—'}</td>
+                        <td>
+                          {isElective ? (
+                            <div className="fill-bar-wrap">
+                              <div className="fill-bar">
+                                <div
+                                  className={`fill-bar-fill ${pct >= 90 ? 'fill-danger' : pct >= 60 ? 'fill-warn' : 'fill-safe'}`}
+                                  style={{ width: `${Math.min(pct, 100)}%` }}
+                                />
+                              </div>
+                              <span className="fill-pct">{pct}%</span>
+                            </div>
+                          ) : '—'}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </section>

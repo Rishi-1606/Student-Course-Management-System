@@ -9,12 +9,13 @@ function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showForgot, setShowForgot] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
 
-    if (!identifier.trim()) { setError('Enter your roll number or username.'); return }
+    if (!identifier.trim()) { setError('Enter your PRN or username.'); return }
     if (!password) { setError('Enter your password.'); return }
 
     setLoading(true)
@@ -69,10 +70,33 @@ function LoginPage() {
           <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
             {loading ? 'Signing in…' : 'Sign In'}
           </button>
+
+          <button
+            type="button"
+            className="forgot-link"
+            onClick={() => setShowForgot((v) => !v)}
+          >
+            {showForgot ? 'Hide' : 'Forgot password?'}
+          </button>
         </form>
 
+        {/* Forgot password info panel */}
+        {showForgot && (
+          <div className="forgot-panel" role="alert">
+            <p className="forgot-title">🔑 Can't access your account?</p>
+            <p>
+              Since this is a college portal, passwords can only be reset by the <strong>system admin</strong>.
+            </p>
+            <ul>
+              <li>Contact your admin with your <strong>name</strong> and <strong>PRN</strong></li>
+              <li>Admin can reset your password from the <em>Students</em> tab in the admin panel</li>
+              <li>Login with <strong>admin</strong> / <strong>admin123</strong> to access the admin panel</li>
+            </ul>
+          </div>
+        )}
+
         <p className="auth-footer">
-          New student? <Link to="/register">Create an account & get your PRN</Link>
+          New student? <Link to="/register">Create an account &amp; get your PRN</Link>
         </p>
       </div>
     </div>
