@@ -309,6 +309,38 @@ function StudentDashboard() {
 
   return (
     <>
+      {/* ── Welcome banner ── */}
+      <div className="welcome-banner">
+        <div className="welcome-banner-left">
+          <div className="welcome-avatar">{student.name?.charAt(0).toUpperCase()}</div>
+          <div>
+            <p className="welcome-greeting">Welcome back,</p>
+            <h2 className="welcome-name">{student.name}</h2>
+            <p className="welcome-meta">
+              <span className="prn-inline">{student.prn}</span>
+              {student.department && <> · {student.department}</>}
+              {student.semester && <> · Semester {student.semester}</>}
+            </p>
+          </div>
+        </div>
+        <div className="welcome-banner-right">
+          <div className="welcome-stat">
+            <span className="welcome-stat-val">{enrollments.length}</span>
+            <span className="welcome-stat-lbl">Courses Enrolled</span>
+          </div>
+          <div className="welcome-stat-divider" />
+          <div className="welcome-stat">
+            <span className="welcome-stat-val">{totalCredits}</span>
+            <span className="welcome-stat-lbl">Credits</span>
+          </div>
+          <div className="welcome-stat-divider" />
+          <div className="welcome-stat">
+            <span className="welcome-stat-val" style={{ fontSize: '1rem' }}>2024-25</span>
+            <span className="welcome-stat-lbl">Academic Year</span>
+          </div>
+        </div>
+      </div>
+
       {/* ── Profile section ── */}
       <section className="section student-summary">
         <div className="profile-header">
