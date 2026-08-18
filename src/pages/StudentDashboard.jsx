@@ -309,95 +309,84 @@ function StudentDashboard() {
 
   return (
     <>
-      {/* ── Welcome banner ── */}
-      <div className="welcome-banner">
-        <div className="welcome-banner-left">
-          <div className="welcome-avatar">{student.name?.charAt(0).toUpperCase()}</div>
-          <div>
-            <p className="welcome-greeting">Welcome back,</p>
-            <h2 className="welcome-name">{student.name}</h2>
-            <p className="welcome-meta">
-              <span className="prn-inline">{student.prn}</span>
-              {student.department && <> · {student.department}</>}
-              {student.semester && <> · Semester {student.semester}</>}
-            </p>
+      {/* ── Student Identity Card ── */}
+      <section className="section student-id-card">
+        <div className="sid-left">
+          <div className="sid-avatar">{student.name?.charAt(0).toUpperCase()}</div>
+          <div className="sid-info">
+            <p className="sid-label">Student</p>
+            <h2 className="sid-name">{student.name}</h2>
+            <div className="sid-chips">
+              <span className="sid-chip sid-chip-prn">{student.prn}</span>
+              {student.department && <span className="sid-chip">{student.department}</span>}
+              {student.semester && <span className="sid-chip">Sem {student.semester}</span>}
+              <span className="sid-chip">AY 2024–25</span>
+            </div>
           </div>
         </div>
-        <div className="welcome-banner-right">
-          <div className="welcome-stat">
-            <span className="welcome-stat-val">{enrollments.length}</span>
-            <span className="welcome-stat-lbl">Courses Enrolled</span>
-          </div>
-          <div className="welcome-stat-divider" />
-          <div className="welcome-stat">
-            <span className="welcome-stat-val">{totalCredits}</span>
-            <span className="welcome-stat-lbl">Credits</span>
-          </div>
-          <div className="welcome-stat-divider" />
-          <div className="welcome-stat">
-            <span className="welcome-stat-val" style={{ fontSize: '1rem' }}>2024-25</span>
-            <span className="welcome-stat-lbl">Academic Year</span>
-          </div>
-        </div>
-      </div>
 
-      {/* ── Profile section ── */}
-      <section className="section student-summary">
-        <div className="profile-header">
-          <h2>My Profile</h2>
-          <div className="profile-actions">
+        <div className="sid-right">
+          <div className="sid-stats">
+            <div className="sid-stat">
+              <span className="sid-stat-val">{enrollments.length}</span>
+              <span className="sid-stat-lbl">Courses</span>
+            </div>
+            <div className="sid-stat-sep" />
+            <div className="sid-stat">
+              <span className="sid-stat-val">{totalCredits}</span>
+              <span className="sid-stat-lbl">Credits</span>
+            </div>
+            <div className="sid-stat-sep" />
+            <div className="sid-stat">
+              <span className="sid-stat-val">{student.email?.split('@')[0] ?? '—'}</span>
+              <span className="sid-stat-lbl">Username</span>
+            </div>
+          </div>
+
+          <div className="sid-actions">
             <button type="button"
               className={`btn ${profileMode === 'edit' ? 'btn-secondary' : 'btn-edit'}`}
               onClick={() => setProfileMode(profileMode === 'edit' ? 'view' : 'edit')}>
-              {profileMode === 'edit' ? '\u2715 Cancel' : '\u270f Edit Profile'}
+              {profileMode === 'edit' ? '× Cancel' : '✏ Edit Profile'}
             </button>
             <button type="button"
               className={`btn ${profileMode === 'password' ? 'btn-secondary' : 'btn-edit'}`}
               onClick={() => setProfileMode(profileMode === 'password' ? 'view' : 'password')}>
-              {profileMode === 'password' ? '\u2715 Cancel' : '\ud83d\udd11 Change Password'}
+              {profileMode === 'password' ? '× Cancel' : '🔑 Password'}
             </button>
           </div>
         </div>
 
-        {profileMode === 'view' && (
-          <div className="summary-card">
-            <div className="summary-row">
-              <span className="label">PRN</span>
-              <span className="value"><span className="prn-inline">{student.prn}</span></span>
-            </div>
-            <div className="summary-row"><span className="label">Name</span><span className="value">{student.name}</span></div>
-            <div className="summary-row"><span className="label">Email</span><span className="value">{student.email}</span></div>
-            {student.department && <div className="summary-row"><span className="label">Branch</span><span className="value">{student.department}</span></div>}
-            {student.semester && <div className="summary-row"><span className="label">Semester</span><span className="value">Semester {student.semester}</span></div>}
+        {profileMode === 'edit' && (
+          <div className="sid-form-panel">
+            <EditProfileForm
+              student={student}
+              onSubmit={async (data) => {
+                try {
+                  const updated = await updateStudent(session.studentId, data)
+                  setStudent(updated)
+                  setProfileMode('view')
+                  toast('Profile updated successfully.')
+                } catch (err) {
+                  toast(err.message, 'error')
+                }
+              }}
+              onCancel={() => setProfileMode('view')}
+            />
           </div>
         )}
 
-        {profileMode === 'edit' && (
-          <EditProfileForm
-            student={student}
-            onSubmit={async (data) => {
-              try {
-                const updated = await updateStudent(session.studentId, data)
-                setStudent(updated)
-                setProfileMode('view')
-                toast('Profile updated successfully.')
-              } catch (err) {
-                toast(err.message, 'error')
-              }
-            }}
-            onCancel={() => setProfileMode('view')}
-          />
-        )}
-
         {profileMode === 'password' && (
-          <ChangePasswordForm
-            onSubmit={async (currentPassword, newPassword) => {
-              await changePassword(session.studentId, currentPassword, newPassword)
-              setProfileMode('view')
-              toast('Password changed successfully.')
-            }}
-            onCancel={() => setProfileMode('view')}
-          />
+          <div className="sid-form-panel">
+            <ChangePasswordForm
+              onSubmit={async (currentPassword, newPassword) => {
+                await changePassword(session.studentId, currentPassword, newPassword)
+                setProfileMode('view')
+                toast('Password changed successfully.')
+              }}
+              onCancel={() => setProfileMode('view')}
+            />
+          </div>
         )}
       </section>
 

@@ -39,7 +39,7 @@ function LoginPage() {
             <span className="auth-crest-icon">🏛</span>
           </div>
           <p className="auth-inst-label">Institute of Technology</p>
-          <h1 className="auth-brand-title">Student Course<br />Management System</h1>
+          <h1 className="auth-brand-title">CourseFlow</h1>
           <p className="auth-brand-tagline">Academic Year 2024 – 25</p>
 
           <div className="auth-brand-divider" />

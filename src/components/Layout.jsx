@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { loadSession, clearSession } from '../utils/localStorage'
 
@@ -13,18 +13,25 @@ const ADMIN_NAV = [
 function Layout({ children }) {
   const navigate = useNavigate()
   const location = useLocation()
-  const session = loadSession()
+  const session  = loadSession()
   const [collapsed, setCollapsed] = useState(false)
+
+  // ── Force light mode — wipe any stored dark theme ──
+  useEffect(() => {
+    document.documentElement.removeAttribute('data-theme')
+    localStorage.removeItem('scms.theme')
+  }, [])
 
   const handleLogout = () => {
     clearSession()
     navigate('/login', { replace: true })
   }
 
-  const isAdmin = session?.role === 'admin'
-  const navItems = isAdmin ? ADMIN_NAV : STUDENT_NAV
-  const userLabel = isAdmin ? 'Admin' : 'Student'
-  const userInitial = isAdmin ? 'A' : '🎓'
+  const isAdmin   = session?.role === 'admin'
+  const navItems  = isAdmin ? ADMIN_NAV : STUDENT_NAV
+  const initials  = session?.name
+    ? session.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+    : (isAdmin ? 'AD' : 'ST')
 
   return (
     <div className={`app-shell ${collapsed ? 'sidebar-collapsed' : ''}`}>
@@ -34,7 +41,7 @@ function Layout({ children }) {
           <span className="sidebar-logo">🏛</span>
           {!collapsed && (
             <div className="sidebar-brand-text">
-              <span className="sidebar-title">SCMS</span>
+              <span className="sidebar-title">CourseFlow</span>
               <span className="sidebar-subtitle">Academic Portal</span>
             </div>
           )}
@@ -58,11 +65,11 @@ function Layout({ children }) {
         <div className="sidebar-footer">
           {/* User info */}
           <div className={`sidebar-user ${collapsed ? 'sidebar-user-compact' : ''}`}>
-            <div className="sidebar-avatar">{userInitial}</div>
+            <div className="sidebar-avatar">{initials}</div>
             {!collapsed && (
               <div className="sidebar-user-info">
-                <p className="sidebar-user-role">{userLabel}</p>
-                <p className="sidebar-user-hint">Logged in</p>
+                <p className="sidebar-user-role">{session?.name || (isAdmin ? 'Administrator' : 'Student')}</p>
+                <p className="sidebar-user-hint">{isAdmin ? 'Admin' : 'Student'} · Logged in</p>
               </div>
             )}
           </div>
@@ -90,13 +97,12 @@ function Layout({ children }) {
         </div>
       </aside>
 
-      {/* ── Main content area ── */}
+      {/* ── Main content ── */}
       <div className="content-area">
-        {/* Topbar */}
         <header className="topbar">
           <div className="topbar-left">
-            <h1 className="topbar-title">Student Course Management System</h1>
-            <p className="topbar-sub">Manage registration and course enrollments</p>
+            <h1 className="topbar-title">CourseFlow</h1>
+            <p className="topbar-sub">Student Course Management System</p>
           </div>
           <div className="topbar-right">
             <span className={`role-pill ${isAdmin ? 'role-pill-admin' : 'role-pill-student'}`}>
@@ -104,7 +110,6 @@ function Layout({ children }) {
             </span>
           </div>
         </header>
-
         <main className="main">{children}</main>
       </div>
     </div>
